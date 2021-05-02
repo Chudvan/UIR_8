@@ -12,6 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from InfoScreen import InfoScreen
 from ScanScreen import ScanScreen_
 from InformationScreen import InformationScreen
+from DatetimeLabel import *
 
 
 class MainScreen(QtWidgets.QMainWindow):
@@ -25,9 +26,21 @@ class MainScreen(QtWidgets.QMainWindow):
             self.pushButton_3: ('informationScreen', InformationScreen)
         }
 
+        set_current_datetime(self.label_5)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_datetime)
+        time_delay = time_before_signal()
+        self.timer.start(int(time_delay[0] * 1000 + time_delay[1] / 1000))
+
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
         self.pushButton_3.clicked.connect(self.showScreen)
+
+    def update_datetime(self):
+        # print('here')
+        set_current_datetime(self.label_5)
+        self.timer.stop()
+        self.timer.start(60 * 1000)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -42,6 +55,7 @@ class MainScreen(QtWidgets.QMainWindow):
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.label_5 = QtWidgets.QLabel(self.centralwidget)
         self.label_5.setObjectName("label_5")
+        self.label_5.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
         self.horizontalLayout_2.addWidget(self.label_5)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)

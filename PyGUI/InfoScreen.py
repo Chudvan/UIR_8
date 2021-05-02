@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Form implementation generated from reading ui file 'UI/InfoScreen.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.1
@@ -9,12 +7,34 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from DatetimeLabel import *
 
 
 class InfoScreen(QtWidgets.QMainWindow):
     def __init__(self):
+        from MainScreen import MainScreen
         super(InfoScreen, self).__init__()
         self.setupUi()
+
+        self._dictButtons = {
+            'mainScreen': ('mainScreen', MainScreen),
+            # 'other': (('orderOtherTelephoneScreen', OrderOtherTelephoneScreen),
+            #           ('orderOtherWalletScreen', OrderOtherWalletScreen))
+        }
+
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+    def update_timedelay(self):
+        # print('here')
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -60,10 +80,19 @@ class InfoScreen(QtWidgets.QMainWindow):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("InfoScreen", "InfoScreen"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
         self.label.setText(_translate("MainWindow", "TextLabel"))
+
+    def showScreen(self):
+        self.delay_timer.stop()
+        self.timer.stop()
+        screen_name, screen_class = self._dictButtons['mainScreen']
+        setattr(self, screen_name, screen_class())
+        _screen = getattr(self, screen_name, None)
+        _screen.show()
+        self.close()
 
 
 if __name__ == '__main__':
