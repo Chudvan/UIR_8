@@ -9,13 +9,15 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from TSO_State import TSO_State
 
 
 class ScanScreen_(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state):
         from MainScreen import MainScreen
         super(ScanScreen_, self).__init__()
         self.setupUi()
+        self.state = state
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen)
@@ -114,7 +116,8 @@ class ScanScreen_(QtWidgets.QMainWindow):
 
     def showScreen(self):
         screen_name, screen_class = self._dictButtons[self.sender()]
-        setattr(self, screen_name, screen_class())
+        state = TSO_State()
+        setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
@@ -123,6 +126,7 @@ class ScanScreen_(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = ScanScreen_()
+    state = TSO_State(currencydetector=False)
+    ui = ScanScreen_(state)
     ui.show()
     sys.exit(app.exec_())

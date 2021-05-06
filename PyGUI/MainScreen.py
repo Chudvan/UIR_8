@@ -13,12 +13,19 @@ from InfoScreen import InfoScreen
 from ScanScreen import ScanScreen_
 from InformationScreen import InformationScreen
 from DatetimeLabel import *
+from TSO_State import TSO_State
+
+ONLINE = True
+BANK_ONLINE = True
+PETROL_ONLINE = True
 
 
 class MainScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state):
         super(MainScreen, self).__init__()
         self.setupUi()
+        self.state = state
+        self.choice_of_inscription()
 
         self._dictButtons = {
             self.pushButton: ('infoScreen', InfoScreen),
@@ -105,21 +112,82 @@ class MainScreen(QtWidgets.QMainWindow):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
+    def choice_of_inscription(self):
+        inscription_list = ["В настоящее время оплата топливной картой недоступна",
+                           "В настоящее время оплата банковской картой недоступна",
+                           "В настоящее время оплата доступна только наличными",
+                           "В настоящее время оплата наличными недоступна",
+                           "В настоящее время оплата доступна только банковской картой",
+                           "В настоящее время оплата доступна только топливной картой",
+                           "В настоящее время заправка не осуществляется"]
+
+        if ONLINE:
+            if self.state.PAPER and self.state.INK:
+                if self.state.CURRENCYDETECTOR:
+                    if self.state.POS:
+                        if BANK_ONLINE:
+                            if PETROL_ONLINE:
+                                inscription = None
+                            else:
+                                inscription = inscription_list[0]
+                        else:
+                            if PETROL_ONLINE:
+                                inscription = inscription_list[1]
+                            else:
+                                inscription = inscription_list[2]
+                    else:
+                        inscription = inscription_list[2]
+                else:
+                    if self.state.POS:
+                        if BANK_ONLINE:
+                            if PETROL_ONLINE:
+                                inscription = inscription_list[3]
+                            else:
+                                inscription = inscription_list[4]
+                        else:
+                            if PETROL_ONLINE:
+                                inscription = inscription_list[5]
+                            else:
+                                inscription = inscription_list[6]
+                    else:
+                        inscription = inscription_list[6]
+            else:
+                inscription = inscription_list[6]
+        else:
+            inscription = inscription_list[6]
+        if inscription is None:
+            self.verticalLayout.removeWidget(self.label)
+            self.label.hide()
+        else:
+            self.label.setText(inscription)
+        if inscription == inscription_list[6]:
+            self.verticalLayout.removeWidget(self.pushButton)
+            self.verticalLayout.removeWidget(self.pushButton_2)
+            self.verticalLayout.removeWidget(self.pushButton_3)
+            self.pushButton.hide()
+            self.pushButton_2.hide()
+            self.pushButton_3.hide()
+        print(inscription)
+
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("MainScreen", "MainScreen"))
         self.label_5.setText(_translate("MainWindow", "TextLabel"))
         self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton1"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
-        self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
+        self.pushButton.setText(_translate("MainWindow", "Заправка"))
+        self.pushButton_2.setText(_translate("MainWindow", "Печать чека\nПеревод сдачи"))
+        self.pushButton_3.setText(_translate("MainWindow", "Информация"))
         self.label_4.setText(_translate("MainWindow", "TextLabel"))
         self.label_3.setText(_translate("MainWindow", "TextLabel"))
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
 
     def showScreen(self):
+        sender = self.sender()
         screen_name, screen_class = self._dictButtons[self.sender()]
-        setattr(self, screen_name, screen_class())
+        if sender == self.pushButton:
+            setattr(self, screen_name, screen_class(self.state, 0))
+        else:
+            setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
@@ -128,6 +196,7 @@ class MainScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = MainScreen()
+    state = TSO_State(currencydetector=False)
+    ui = MainScreen(state)
     ui.show()
     sys.exit(app.exec_())

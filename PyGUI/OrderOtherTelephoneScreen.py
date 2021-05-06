@@ -11,12 +11,14 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from MainScreen import MainScreen
 from InfoScreen import InfoScreen
+from TSO_State import TSO_State
 
 
 class OrderOtherTelephoneScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state):
         super(OrderOtherTelephoneScreen, self).__init__()
         self.setupUi()
+        self.state = state
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -144,7 +146,7 @@ class OrderOtherTelephoneScreen(QtWidgets.QMainWindow):
 
     def showScreen(self):
         screen_name, screen_class = self._dictButtons[self.sender()]
-        setattr(self, screen_name, screen_class())
+        setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
@@ -153,6 +155,7 @@ class OrderOtherTelephoneScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = OrderOtherTelephoneScreen()
+    state = TSO_State(currencydetector=False)
+    ui = OrderOtherTelephoneScreen(state)
     ui.show()
     sys.exit(app.exec_())

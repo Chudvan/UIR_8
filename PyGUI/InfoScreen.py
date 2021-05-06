@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Form implementation generated from reading ui file 'UI/InfoScreen.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.1
@@ -7,19 +9,59 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSignal, QObject
 from DatetimeLabel import *
+from TSO_State import TSO_State
+import requests
+
+
+SLEEP_DELAY = 10
+
+
+class Logic(QObject):
+    new_screen = pyqtSignal(object)
+
+    def __init__(self, inscription):
+        super(Logic, self).__init__()
+        self.inscription = inscription
+        self.data = None
+        self.actual = True
+
+    def run(self):
+        if self.inscription == "Загрузка":
+            try:
+                r = requests.get('http://127.0.0.1:8000/api/v1/TSO/pumps/')
+            except requests.exceptions.ConnectionError:
+                print('ERROR')
+                return
+            # print(r)
+            if r.status_code == 200:
+                self.data = r.json()
+            QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+        elif self.inscription == "Следуйте инструкциям на пин-паде":
+            pass
+        elif self.inscription == "Подождите, идёт печать":
+            pass
+
+        if self.actual:
+            self.new_screen.emit(self.data)
 
 
 class InfoScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state, inscription_num):
         from MainScreen import MainScreen
+        from ErrorScreen import ErrorScreen
+        from PumpsScreen import PumpsScreen
         super(InfoScreen, self).__init__()
         self.setupUi()
+        self.state = state
+        self.choice_of_inscription(inscription_num)
+        self.data = None
 
         self._dictButtons = {
             'mainScreen': ('mainScreen', MainScreen),
-            # 'other': (('orderOtherTelephoneScreen', OrderOtherTelephoneScreen),
-            #           ('orderOtherWalletScreen', OrderOtherWalletScreen))
+            'errorScreen': ('errorScreen', ErrorScreen),
+            'pumpsScreen': ('pumpsScreen', PumpsScreen)
         }
 
         self.delay_timer = QtCore.QTimer()
@@ -30,6 +72,19 @@ class InfoScreen(QtWidgets.QMainWindow):
         set_current_time(self.label_6, self.decrease)
         self.delay_timer.start(TIMER_DELAY * 1000)
         self.timer.start(1 * 1000)
+
+        self.thread = QtCore.QThread()
+        self.logic = Logic(self.get_inscription())
+        self.logic.moveToThread(self.thread)
+        self.logic.new_screen.connect(self.showScreen)
+        self.thread.started.connect(self.logic.run)
+        self.thread.start()
+        # self.process = QtCore.QTimer()
+        # self.process.timeout.connect(self.start_process)
+        # self.process.start(1)
+        # self.c = Communicate()
+        # self.c.new_screen.connect(self.showScreen)
+        # self.start_process()
 
     def update_timedelay(self):
         # print('here')
@@ -77,6 +132,20 @@ class InfoScreen(QtWidgets.QMainWindow):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
+    def choice_of_inscription(self, inscription_num):
+        inscription_list = ["Загрузка",
+                           "Следуйте инструкциям на пин-паде",
+                           "Подождите, идёт печать",
+                           "Возьмите напечатанную квитанцию заказа",
+                           "Возьмите напечатанный чек"]
+
+        inscription = inscription_list[inscription_num]
+        self.label.setText(inscription)
+        #print(inscription)
+
+    def get_inscription(self):
+        return self.label.text()
+
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("InfoScreen", "InfoScreen"))
@@ -85,19 +154,32 @@ class InfoScreen(QtWidgets.QMainWindow):
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
         self.label.setText(_translate("MainWindow", "TextLabel"))
 
-    def showScreen(self):
+    def showScreen(self, data=None):
         self.delay_timer.stop()
         self.timer.stop()
-        screen_name, screen_class = self._dictButtons['mainScreen']
-        setattr(self, screen_name, screen_class())
+        #self.process.stop()
+        print(data)
+        if data:
+            self.data = data
+        sender = self.sender()
+        if sender == self.delay_timer:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+            self.logic.actual = False
+        elif self.data is None:
+            screen_name, screen_class = self._dictButtons['errorScreen']
+        elif self.data:
+            screen_name, screen_class = self._dictButtons['pumpsScreen']
+        setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
+        #print('close')
 
 
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = InfoScreen()
+    state = TSO_State(currencydetector=False)
+    ui = InfoScreen(state, 0)
     ui.show()
     sys.exit(app.exec_())

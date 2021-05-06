@@ -11,13 +11,15 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from OrderOtherTelephoneScreen import OrderOtherTelephoneScreen
 from OrderOtherWalletScreen import OrderOtherWalletScreen
+from TSO_State import TSO_State
 
 
 class OrderOtherSimcardScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state):
         from MainScreen import MainScreen
         super(OrderOtherSimcardScreen, self).__init__()
         self.setupUi()
+        self.state = state
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -135,7 +137,7 @@ class OrderOtherSimcardScreen(QtWidgets.QMainWindow):
                 screen_name, screen_class = self._dictButtons['other'][1]
             else:
                 screen_name, screen_class = self._dictButtons['other'][0]
-        setattr(self, screen_name, screen_class())
+        setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
@@ -144,6 +146,7 @@ class OrderOtherSimcardScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = OrderOtherSimcardScreen()
+    state = TSO_State(currencydetector=False)
+    ui = OrderOtherSimcardScreen(state)
     ui.show()
     sys.exit(app.exec_())

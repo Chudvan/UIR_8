@@ -9,13 +9,15 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from TSO_State import TSO_State
 
 
 class InformationScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state):
         from MainScreen import MainScreen
         super(InformationScreen, self).__init__()
         self.setupUi()
+        self.state = state
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -91,7 +93,7 @@ class InformationScreen(QtWidgets.QMainWindow):
         sender = self.sender()
         screen_name, screen_class = self._dictButtons[sender]
         if sender == self.pushButton:
-            setattr(self, screen_name, screen_class())
+            setattr(self, screen_name, screen_class(self.state))
             _screen = getattr(self, screen_name, None)
             _screen.show()
         elif sender == self.pushButton_2:
@@ -109,6 +111,7 @@ class InformationScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = InformationScreen()
+    state = TSO_State(currencydetector=False)
+    ui = InformationScreen(state)
     ui.show()
     sys.exit(app.exec_())

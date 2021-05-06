@@ -11,12 +11,14 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from MainScreen import MainScreen
 from CustomerDetailsScreen import CustomerDetailsScreen
+from TSO_State import TSO_State
 
 
 class PaymentMethodScreen(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, state):
         super(PaymentMethodScreen, self).__init__()
         self.setupUi()
+        self.state = state
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -117,7 +119,7 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
             screen_name, screen_class = self._dictButtons[sender]
         else:
             screen_name, screen_class = self._dictButtons['paymentMethods']
-        setattr(self, screen_name, screen_class())
+        setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
@@ -126,6 +128,7 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    ui = PaymentMethodScreen()
+    state = TSO_State(currencydetector=False)
+    ui = PaymentMethodScreen(state)
     ui.show()
     sys.exit(app.exec_())
