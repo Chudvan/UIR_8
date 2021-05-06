@@ -64,6 +64,25 @@ class InfoScreen(QtWidgets.QMainWindow):
             'pumpsScreen': ('pumpsScreen', PumpsScreen)
         }
 
+        self.init_timer()
+
+        self.init_logic()
+        self.thread.start()
+        # self.process = QtCore.QTimer()
+        # self.process.timeout.connect(self.start_process)
+        # self.process.start(1)
+        # self.c = Communicate()
+        # self.c.new_screen.connect(self.showScreen)
+        # self.start_process()
+
+    def init_logic(self):
+        self.thread = QtCore.QThread()
+        self.logic = Logic(self.get_inscription())
+        self.logic.moveToThread(self.thread)
+        self.logic.new_screen.connect(self.showScreen)
+        self.thread.started.connect(self.logic.run)
+
+    def init_timer(self):
         self.delay_timer = QtCore.QTimer()
         self.delay_timer.timeout.connect(self.showScreen)
         self.timer = QtCore.QTimer()
@@ -73,21 +92,7 @@ class InfoScreen(QtWidgets.QMainWindow):
         self.delay_timer.start(TIMER_DELAY * 1000)
         self.timer.start(1 * 1000)
 
-        self.thread = QtCore.QThread()
-        self.logic = Logic(self.get_inscription())
-        self.logic.moveToThread(self.thread)
-        self.logic.new_screen.connect(self.showScreen)
-        self.thread.started.connect(self.logic.run)
-        self.thread.start()
-        # self.process = QtCore.QTimer()
-        # self.process.timeout.connect(self.start_process)
-        # self.process.start(1)
-        # self.c = Communicate()
-        # self.c.new_screen.connect(self.showScreen)
-        # self.start_process()
-
     def update_timedelay(self):
-        # print('here')
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
@@ -154,10 +159,13 @@ class InfoScreen(QtWidgets.QMainWindow):
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
         self.label.setText(_translate("MainWindow", "TextLabel"))
 
-    def showScreen(self, data=None):
+    def stop_timer(self):
         self.delay_timer.stop()
         self.timer.stop()
-        #self.process.stop()
+
+    def showScreen(self, data=None):
+        self.stop_timer()
+
         print(data)
         if data:
             self.data = data

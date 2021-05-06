@@ -55,14 +55,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
             'errorScreen': ('errorScreen', ErrorScreen)
         }
 
-        self.delay_timer = QtCore.QTimer()
-        self.delay_timer.timeout.connect(self.showScreen)
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_timedelay)
-        self.decrease = 0
-        set_current_time(self.label_6, self.decrease)
-        self.delay_timer.start(TIMER_DELAY * 1000)
-        self.timer.start(1 * 1000)
+        self.init_timer()
 
         # self.pushButton_2.clicked.connect(self.showScreen)
         # self.pushButton_3.clicked.connect(self.showScreen)
@@ -71,11 +64,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
         # self.pushButton_6.clicked.connect(self.showScreen)
         # self.pushButton_7.clicked.connect(self.showScreen)
 
-        self.thread = QtCore.QThread()
-        self.logic = Logic()
-        self.logic.moveToThread(self.thread)
-        self.logic.new_screen.connect(self.showScreen)
-        self.thread.started.connect(self.logic.run)
+        self.init_logic()
 
         self.pushButton.clicked.connect(self.showScreen)
         n = len(self.data) if self.data else 0
@@ -86,9 +75,34 @@ class PumpsScreen(QtWidgets.QMainWindow):
 
         self.data = None
 
+    def init_logic(self):
+        self.thread = QtCore.QThread()
+        self.logic = Logic()
+        self.logic.moveToThread(self.thread)
+        self.logic.new_screen.connect(self.showScreen)
+        self.thread.started.connect(self.logic.run)
+
+    def init_timer(self):
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
     def update_timedelay(self):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
+
+    def create_buttons(self):
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
+            pushButton = getattr(self, pushButton_name, None)
+            self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -125,12 +139,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
 
-        n = len(self.data) if self.data else 0
-        for i in range(n):
-            pushButton_name = "pushButton_" + str(i + 2)
-            setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
-            pushButton = getattr(self, pushButton_name, None)
-            self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
+        self.create_buttons()
 
         # self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
         # self.pushButton_3.setObjectName("pushButton_3")
@@ -172,13 +181,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
-    def retranslateUi(self):
-        _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("PumpsScreen", "PumpsScreen"))
-        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
-        self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "Выберите ТРК"))
-
+    def retranslate_buttons(self):
         n = len(self.data) if self.data else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
@@ -186,6 +189,15 @@ class PumpsScreen(QtWidgets.QMainWindow):
             pushButton.setText(str(self.data[i]['number']) + ' : ' + self.data[i]['status'])
             pushButton.number = self.data[i]['number']
             pushButton.status = self.data[i]['status']
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("PumpsScreen", "PumpsScreen"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
+        self.label_6.setText(_translate("MainWindow", "TextLabel"))
+        self.label.setText(_translate("MainWindow", "Выберите ТРК"))
+
+        self.retranslate_buttons()
 
         # self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
         # self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
@@ -203,9 +215,12 @@ class PumpsScreen(QtWidgets.QMainWindow):
             return
         self.thread.start()
 
-    def showScreen(self, data=None):
+    def stop_timer(self):
         self.delay_timer.stop()
         self.timer.stop()
+
+    def showScreen(self, data=None):
+        self.stop_timer()
 
         print('data', data)
         if data:

@@ -9,27 +9,95 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSignal, QObject
 from MainScreen import MainScreen
 from PaymentMethodScreen import PaymentMethodScreen
+from DatetimeLabel import *
 from TSO_State import TSO_State
+import requests
+
+
+class Logic(QObject):
+    new_screen = pyqtSignal(object)
+
+    def __init__(self):
+        super(Logic, self).__init__()
+        self.actual = True
+
+    def run(self):
+        try:
+            r = requests.get('http://127.0.0.1:8000/api/v1/TSO/session/')
+        except requests.exceptions.ConnectionError:
+            print('ERROR')
+            return
+        # print(r)
+
+        if self.actual:
+            #print(self.data)
+            self.new_screen.emit(r.status_code)
 
 
 class PetrolsScreen(QtWidgets.QMainWindow):
     def __init__(self, state, data=None):
+        from ErrorScreen import ErrorScreen
         super(PetrolsScreen, self).__init__()
-        self.setupUi()
         self.state = state
+        self.data = data
+        self.setupUi()
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
-            'petrols': ('paymentMethodScreen', PaymentMethodScreen)
+            'mainScreen': ('mainScreen', MainScreen),
+            'petrols': ('paymentMethodScreen', PaymentMethodScreen),
+            'errorScreen': ('errorScreen', ErrorScreen)
         }
 
+        self.init_timer()
+        self.init_logic()
+
         self.pushButton.clicked.connect(self.showScreen)
-        self.pushButton_2.clicked.connect(self.showScreen)
-        self.pushButton_3.clicked.connect(self.showScreen)
-        self.pushButton_4.clicked.connect(self.showScreen)
-        self.pushButton_5.clicked.connect(self.showScreen)
+
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            pushButton = getattr(self, pushButton_name, None)
+            pushButton.clicked.connect(self.start_logic)
+
+        # self.pushButton_2.clicked.connect(self.showScreen)
+        # self.pushButton_3.clicked.connect(self.showScreen)
+        # self.pushButton_4.clicked.connect(self.showScreen)
+        # self.pushButton_5.clicked.connect(self.showScreen)
+
+        self.data = None
+
+    def init_logic(self):
+        self.thread = QtCore.QThread()
+        self.logic = Logic()
+        self.logic.moveToThread(self.thread)
+        self.logic.new_screen.connect(self.showScreen)
+        self.thread.started.connect(self.logic.run)
+
+    def init_timer(self):
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+    def update_timedelay(self):
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
+
+    def create_buttons(self):
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
+            pushButton = getattr(self, pushButton_name, None)
+            self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -65,18 +133,22 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.verticalLayout.addWidget(self.label)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.gridLayout.addWidget(self.pushButton_3, 0, 1, 1, 1)
-        self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_4.setObjectName("pushButton_4")
-        self.gridLayout.addWidget(self.pushButton_4, 0, 2, 1, 1)
-        self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout.addWidget(self.pushButton_2, 0, 0, 1, 1)
-        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_5.setObjectName("pushButton_5")
-        self.gridLayout.addWidget(self.pushButton_5, 0, 3, 1, 1)
+
+        self.create_buttons()
+
+        # self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_3.setObjectName("pushButton_3")
+        # self.gridLayout.addWidget(self.pushButton_3, 0, 1, 1, 1)
+        # self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_4.setObjectName("pushButton_4")
+        # self.gridLayout.addWidget(self.pushButton_4, 0, 2, 1, 1)
+        # self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_2.setObjectName("pushButton_2")
+        # self.gridLayout.addWidget(self.pushButton_2, 0, 0, 1, 1)
+        # self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_5.setObjectName("pushButton_5")
+        # self.gridLayout.addWidget(self.pushButton_5, 0, 3, 1, 1)
+
         self.verticalLayout.addLayout(self.gridLayout)
         self.horizontalLayout_6.addLayout(self.verticalLayout)
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -98,25 +170,56 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
+    def retranslate_buttons(self):
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            pushButton = getattr(self, pushButton_name, None)
+            pushButton.setText(self.data[i]['petrolType'] + ' : ' + str(self.data[i]['price']))
+            pushButton.petrolType = self.data[i]['petrolType']
+            pushButton.price = self.data[i]['price']
+
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("PetrolsScreen", "PetrolsScreen"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
-        self.pushButton_4.setText(_translate("MainWindow", "PushButton4"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
-        self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton1"))
+        self.label.setText(_translate("MainWindow", "Выберите пистолет на ТРК №" + str(self.state.TSO_number)))
 
-    def showScreen(self):
+        self.retranslate_buttons()
+
+        # self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
+        # self.pushButton_4.setText(_translate("MainWindow", "PushButton4"))
+        # self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
+        # self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
+
+        self.pushButton.setText(_translate("MainWindow", "Выход"))
+
+    def start_logic(self):
+        self.thread.start()
+
+    def stop_timer(self):
+        self.delay_timer.stop()
+        self.timer.stop()
+
+    def showScreen(self, status_code=None):
+        self.stop_timer()
+
         sender = self.sender()
-        if sender == self.pushButton:
+
+        if sender == self.delay_timer:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+            self.logic.actual = False
+        elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
-        else:
+            self.logic.actual = False
+        elif status_code == 200:
             screen_name, screen_class = self._dictButtons['petrols']
-        setattr(self, screen_name, screen_class(self.state))
+        elif status_code == 503:
+            screen_name, screen_class = self._dictButtons['errorScreen']
+        else:
+            raise Exception
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()
