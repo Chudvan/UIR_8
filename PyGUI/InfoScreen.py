@@ -15,7 +15,7 @@ from TSO_State import TSO_State
 import requests
 
 
-SLEEP_DELAY = 10
+SLEEP_DELAY = 3
 
 
 class Logic(QObject):
@@ -169,7 +169,7 @@ class InfoScreen(QtWidgets.QMainWindow):
             screen_name, screen_class = self._dictButtons['errorScreen']
         elif self.data:
             screen_name, screen_class = self._dictButtons['pumpsScreen']
-        setattr(self, screen_name, screen_class(self.state))
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

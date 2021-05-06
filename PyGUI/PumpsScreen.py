@@ -9,29 +9,86 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import pyqtSignal, QObject
 from MainScreen import MainScreen
 from PetrolsScreen import PetrolsScreen
+from DatetimeLabel import *
 from TSO_State import TSO_State
+import requests
+
+
+class Logic(QObject):
+    new_screen = pyqtSignal(object)
+
+    def __init__(self):
+        super(Logic, self).__init__()
+        self.data = None
+        self.actual = True
+
+    def run(self):
+        try:
+            r = requests.get('http://127.0.0.1:8000/api/v1/TSO/petrols/')
+        except requests.exceptions.ConnectionError:
+            print('ERROR')
+            return
+        # print(r)
+        if r.status_code == 200:
+            self.data = r.json()
+
+        if self.actual:
+            #print(self.data)
+            self.new_screen.emit(self.data)
 
 
 class PumpsScreen(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data=None):
+        from ErrorScreen import ErrorScreen
         super(PumpsScreen, self).__init__()
+        self.data = data
         self.setupUi()
         self.state = state
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
-            'pumps': ('petrolsScreen', PetrolsScreen)
+            'mainScreen': ('mainScreen', MainScreen),
+            'pumps': ('petrolsScreen', PetrolsScreen),
+            'errorScreen': ('errorScreen', ErrorScreen)
         }
 
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+        # self.pushButton_2.clicked.connect(self.showScreen)
+        # self.pushButton_3.clicked.connect(self.showScreen)
+        # self.pushButton_4.clicked.connect(self.showScreen)
+        # self.pushButton_5.clicked.connect(self.showScreen)
+        # self.pushButton_6.clicked.connect(self.showScreen)
+        # self.pushButton_7.clicked.connect(self.showScreen)
+
+        self.thread = QtCore.QThread()
+        self.logic = Logic()
+        self.logic.moveToThread(self.thread)
+        self.logic.new_screen.connect(self.showScreen)
+        self.thread.started.connect(self.logic.run)
+
         self.pushButton.clicked.connect(self.showScreen)
-        self.pushButton_2.clicked.connect(self.showScreen)
-        self.pushButton_3.clicked.connect(self.showScreen)
-        self.pushButton_4.clicked.connect(self.showScreen)
-        self.pushButton_5.clicked.connect(self.showScreen)
-        self.pushButton_6.clicked.connect(self.showScreen)
-        self.pushButton_7.clicked.connect(self.showScreen)
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            pushButton = getattr(self, pushButton_name, None)
+            pushButton.clicked.connect(self.start_logic)
+
+        self.data = None
+
+    def update_timedelay(self):
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -67,24 +124,33 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.verticalLayout.addWidget(self.label)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.gridLayout.addWidget(self.pushButton_3, 0, 1, 1, 1)
-        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_5.setObjectName("pushButton_5")
-        self.gridLayout.addWidget(self.pushButton_5, 0, 3, 1, 1)
-        self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_4.setObjectName("pushButton_4")
-        self.gridLayout.addWidget(self.pushButton_4, 0, 2, 1, 1)
-        self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout.addWidget(self.pushButton_2, 0, 0, 1, 1)
-        self.pushButton_6 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_6.setObjectName("pushButton_6")
-        self.gridLayout.addWidget(self.pushButton_6, 1, 0, 1, 1)
-        self.pushButton_7 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_7.setObjectName("pushButton_7")
-        self.gridLayout.addWidget(self.pushButton_7, 1, 1, 1, 1)
+
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
+            pushButton = getattr(self, pushButton_name, None)
+            self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
+
+        # self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_3.setObjectName("pushButton_3")
+        # self.gridLayout.addWidget(self.pushButton_3, 0, 1, 1, 1)
+        # self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_5.setObjectName("pushButton_5")
+        # self.gridLayout.addWidget(self.pushButton_5, 0, 3, 1, 1)
+        # self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_4.setObjectName("pushButton_4")
+        # self.gridLayout.addWidget(self.pushButton_4, 0, 2, 1, 1)
+        # self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_2.setObjectName("pushButton_2")
+        # self.gridLayout.addWidget(self.pushButton_2, 0, 0, 1, 1)
+        # self.pushButton_6 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_6.setObjectName("pushButton_6")
+        # self.gridLayout.addWidget(self.pushButton_6, 1, 0, 1, 1)
+        # self.pushButton_7 = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_7.setObjectName("pushButton_7")
+        # self.gridLayout.addWidget(self.pushButton_7, 1, 1, 1, 1)
+
         self.verticalLayout.addLayout(self.gridLayout)
         self.horizontalLayout_6.addLayout(self.verticalLayout)
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -109,24 +175,61 @@ class PumpsScreen(QtWidgets.QMainWindow):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("PumpsScreen", "PumpsScreen"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
-        self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
-        self.pushButton_4.setText(_translate("MainWindow", "PushButton4"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
-        self.pushButton_6.setText(_translate("MainWindow", "PushButton6"))
-        self.pushButton_7.setText(_translate("MainWindow", "PushButton7"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton1"))
+        self.label.setText(_translate("MainWindow", "Выберите ТРК"))
 
-    def showScreen(self):
+        n = len(self.data) if self.data else 0
+        for i in range(n):
+            pushButton_name = "pushButton_" + str(i + 2)
+            pushButton = getattr(self, pushButton_name, None)
+            pushButton.setText(str(self.data[i]['number']) + ' : ' + self.data[i]['status'])
+            pushButton.number = self.data[i]['number']
+            pushButton.status = self.data[i]['status']
+
+        # self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
+        # self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
+        # self.pushButton_4.setText(_translate("MainWindow", "PushButton4"))
+        # self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
+        # self.pushButton_6.setText(_translate("MainWindow", "PushButton6"))
+        # self.pushButton_7.setText(_translate("MainWindow", "PushButton7"))
+
+        self.pushButton.setText(_translate("MainWindow", "Выход"))
+
+    def start_logic(self):
         sender = self.sender()
-        if sender == self.pushButton:
+        if sender.status == 'UNAVAILABLE':
+            print('UNAVAILABLE')
+            return
+        self.thread.start()
+
+    def showScreen(self, data=None):
+        self.delay_timer.stop()
+        self.timer.stop()
+
+        print('data', data)
+        if data:
+            self.data = data
+        sender = self.sender()
+        if sender == self.delay_timer:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+            self.logic.actual = False
+        elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
-        else:
+            self.logic.actual = False
+        elif self.data is None:
+            screen_name, screen_class = self._dictButtons['errorScreen']
+        elif self.data:
+            #print(self.data)
             screen_name, screen_class = self._dictButtons['pumps']
-        setattr(self, screen_name, screen_class(self.state))
+        # else:
+        #     print('else')
+        #     if sender.status == 'UNAVAILABLE':
+        #         print('here')
+        #         return
+        #     self.thread.start()
+        #     screen_name, screen_class = self._dictButtons['pumps']
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

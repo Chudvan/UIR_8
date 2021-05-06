@@ -15,7 +15,7 @@ from TSO_State import TSO_State
 
 
 class PetrolsScreen(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data=None):
         super(PetrolsScreen, self).__init__()
         self.setupUi()
         self.state = state

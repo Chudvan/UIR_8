@@ -21,11 +21,12 @@ PETROL_ONLINE = True
 
 
 class MainScreen(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data=None):
         super(MainScreen, self).__init__()
         self.setupUi()
         self.state = state
         self.choice_of_inscription()
+        self.data = data
 
         self._dictButtons = {
             self.pushButton: ('infoScreen', InfoScreen),
