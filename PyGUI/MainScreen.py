@@ -19,6 +19,8 @@ ONLINE = True
 BANK_ONLINE = True
 PETROL_ONLINE = True
 
+MAXIMUM_AMOUNT = 15_000
+
 
 class MainScreen(QtWidgets.QMainWindow):
     def __init__(self, state, data=None):

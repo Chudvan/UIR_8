@@ -14,10 +14,11 @@ from TSO_State import TSO_State
 
 
 class ErrorScreen(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data=None):
         super(ErrorScreen, self).__init__()
         self.setupUi()
         self.state = state
+        self.data = data
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen)

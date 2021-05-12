@@ -21,11 +21,12 @@ SLEEP_DELAY = 3
 class Logic(QObject):
     new_screen = pyqtSignal(object)
 
-    def __init__(self, inscription):
+    def __init__(self, inscription, screen=None):
         super(Logic, self).__init__()
         self.inscription = inscription
         self.data = None
         self.actual = True
+        self.screen = screen
 
     def run(self):
         if self.inscription == "Загрузка":
@@ -39,12 +40,16 @@ class Logic(QObject):
                 self.data = r.json()
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
         elif self.inscription == "Следуйте инструкциям на пин-паде":
+            QtCore.QThread.msleep(SLEEP_DELAY * 1000)
             pass
         elif self.inscription == "Подождите, идёт печать":
-            pass
+            QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+            self.screen.choice_of_inscription(3)
+            QtCore.QThread.msleep(SLEEP_DELAY * 1000)
 
         if self.actual:
             self.new_screen.emit(self.data)
+        self.thread().quit()
 
 
 class InfoScreen(QtWidgets.QMainWindow):
@@ -76,8 +81,8 @@ class InfoScreen(QtWidgets.QMainWindow):
         # self.start_process()
 
     def init_logic(self):
-        self.thread = QtCore.QThread()
-        self.logic = Logic(self.get_inscription())
+        self.thread = QtCore.QThread(self)
+        self.logic = Logic(self.get_inscription(), self)
         self.logic.moveToThread(self.thread)
         self.logic.new_screen.connect(self.showScreen)
         self.thread.started.connect(self.logic.run)
@@ -163,8 +168,19 @@ class InfoScreen(QtWidgets.QMainWindow):
         self.delay_timer.stop()
         self.timer.stop()
 
+    def terminate_logic(self):
+        self.logic.actual = False
+        if self.thread.isRunning():
+            print('if')
+            self.thread.quit()
+            self.thread.wait()
+            self.thread.terminate()
+            self.thread.wait()
+        print(self.thread.isFinished(), self.thread.isRunning())
+
     def showScreen(self, data=None):
         self.stop_timer()
+        self.terminate_logic()
 
         print(data)
         if data:
@@ -172,11 +188,12 @@ class InfoScreen(QtWidgets.QMainWindow):
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
-            self.logic.actual = False
+            #self.logic.actual = False
         elif self.data is None:
             screen_name, screen_class = self._dictButtons['errorScreen']
         elif self.data:
             screen_name, screen_class = self._dictButtons['pumpsScreen']
+
         setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()

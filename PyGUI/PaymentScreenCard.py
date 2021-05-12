@@ -9,24 +9,62 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from MainScreen import MainScreen
+from MainScreen import MainScreen, MAXIMUM_AMOUNT
 from InfoScreen import InfoScreen
+from DatetimeLabel import *
 from TSO_State import TSO_State
 
 
 class PaymentScreenCard(QtWidgets.QMainWindow):
     def __init__(self, state):
         super(PaymentScreenCard, self).__init__()
+        self.maximum_amount = MAXIMUM_AMOUNT
         self.setupUi()
         self.state = state
+        self._sum = 0
+        self.liters = 0
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
+            'mainScreen': ('mainScreen', MainScreen),
             self.pushButton_2: ('infoScreen', InfoScreen)
         }
 
+        self.init_timer()
+
+        self.doubleSpinBox.setValue(self._sum)
+        self.doubleSpinBox_2.setValue(self.liters)
+        self.lineEdit.setText(str(self.maximum_amount))
+
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
+        self.doubleSpinBox.valueChanged.connect(self.update_spin_boxes)
+        self.doubleSpinBox_2.valueChanged.connect(self.update_spin_boxes)
+
+    def init_timer(self):
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+    def update_timedelay(self):
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
+
+    def update_spin_boxes(self):
+        sender = self.sender()
+        if sender == self.doubleSpinBox:
+            print('sum')
+            self._sum = self.doubleSpinBox.value()
+        elif sender == self.doubleSpinBox_2:
+            print('litres')
+            self.liters = self.doubleSpinBox_2.value()
+        print(self._sum)
+        print(self.liters)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -84,6 +122,7 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.gridLayout.addWidget(self.label_13, 1, 0, 1, 1)
         self.doubleSpinBox = QtWidgets.QDoubleSpinBox(self.centralwidget)
         self.doubleSpinBox.setObjectName("doubleSpinBox")
+        self.doubleSpinBox.setMaximum(self.maximum_amount)
         self.gridLayout.addWidget(self.doubleSpinBox, 0, 1, 1, 1)
         self.doubleSpinBox_2 = QtWidgets.QDoubleSpinBox(self.centralwidget)
         self.doubleSpinBox_2.setObjectName("doubleSpinBox_2")
@@ -139,6 +178,7 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.horizontalLayout.addWidget(self.label_18)
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit.setObjectName("lineEdit")
+        self.lineEdit.setEnabled(False)
         self.horizontalLayout.addWidget(self.lineEdit)
         self.verticalLayout_5.addLayout(self.horizontalLayout)
         self.label_19 = QtWidgets.QLabel(self.centralwidget)
@@ -169,24 +209,33 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("PaymentScreenCard", "PaymentScreenCard"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
-        self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.label_7.setText(_translate("MainWindow", "TextLabel"))
-        self.label_16.setText(_translate("MainWindow", "TextLabel"))
-        self.label_8.setText(_translate("MainWindow", "TextLabel"))
-        self.label_14.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
+        self.label_6.setText(_translate("MainWindow", "TextLabel6"))
+        self.label.setText(_translate("MainWindow", "Введите сумму к оплате или количество литров"))
+        self.label_7.setText(_translate("MainWindow", "Ввести рубли:"))
+        self.label_16.setText(_translate("MainWindow", "Л."))
+        self.label_8.setText(_translate("MainWindow", "Руб."))
+        self.label_14.setText(_translate("MainWindow", "Ввести литры:"))
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
         self.label_3.setText(_translate("MainWindow", "TextLabel"))
-        self.label_18.setText(_translate("MainWindow", "TextLabel"))
-        self.label_19.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton"))
+        self.label_18.setText(_translate("MainWindow", "Максимальная сумма заказа"))
+        self.label_19.setText(_translate("MainWindow", "За данную операцию комиссия не взимается!"))
+        self.pushButton.setText(_translate("MainWindow", "Выход"))
+        self.pushButton_2.setText(_translate("MainWindow", "Оплатить"))
+
+    def stop_timer(self):
+        self.delay_timer.stop()
+        self.timer.stop()
 
     def showScreen(self):
+        self.stop_timer()
+
         sender = self.sender()
-        screen_name, screen_class = self._dictButtons[sender]
-        setattr(self, screen_name, screen_class(self.state))
+        if sender == self.delay_timer or sender == self.pushButton:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+        else:
+            screen_name, screen_class = self._dictButtons[sender]
+        setattr(self, screen_name, screen_class(self.state, 1))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

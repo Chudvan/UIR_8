@@ -11,6 +11,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from MainScreen import MainScreen
 from CustomerDetailsScreen import CustomerDetailsScreen
+from DatetimeLabel import *
 from TSO_State import TSO_State
 
 
@@ -23,14 +24,31 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
+            'mainScreen': ('mainScreen', MainScreen),
             'paymentMethods': ('customerDetailsScreen', CustomerDetailsScreen)
         }
+
+        self.init_timer()
 
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
         self.pushButton_3.clicked.connect(self.showScreen)
         self.pushButton_4.clicked.connect(self.showScreen)
-        self.pushButton_5.clicked.connect(self.showScreen)
+        #self.pushButton_5.clicked.connect(self.showScreen)
+
+    def init_timer(self):
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+    def update_timedelay(self):
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -77,9 +95,9 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
         self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_4.setObjectName("pushButton_4")
         self.gridLayout.addWidget(self.pushButton_4, 1, 0, 1, 1)
-        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_5.setObjectName("pushButton_5")
-        self.gridLayout.addWidget(self.pushButton_5, 1, 1, 1, 1)
+        #self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
+        #self.pushButton_5.setObjectName("pushButton_5")
+        #self.gridLayout.addWidget(self.pushButton_5, 1, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
         self.horizontalLayout_6.addLayout(self.verticalLayout)
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -105,18 +123,26 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("PaymentMethodScreen", "PaymentMethodScreen"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton_3.setText(_translate("MainWindow", "PushButton3"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
-        self.pushButton_4.setText(_translate("MainWindow", "PushButton4"))
-        self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton1"))
+        self.label.setText(_translate("MainWindow", "Выберите способ оплаты"))
+        self.pushButton_3.setText(_translate("MainWindow", "Банковская карта"))
+        self.pushButton_2.setText(_translate("MainWindow", "Наличные"))
+        self.pushButton_4.setText(_translate("MainWindow", "Топливная карта"))
+        #self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
+        self.pushButton.setText(_translate("MainWindow", "Выход"))
+
+    def stop_timer(self):
+        self.delay_timer.stop()
+        self.timer.stop()
 
     def showScreen(self):
+        self.stop_timer()
+
         sender = self.sender()
-        if sender == self.pushButton:
+        if sender == self.delay_timer:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+        elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
         else:
             screen_name, screen_class = self._dictButtons['paymentMethods']

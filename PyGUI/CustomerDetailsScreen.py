@@ -12,6 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from MainScreen import MainScreen
 from PaymentScreen import PaymentScreen
 from PaymentScreenCard import PaymentScreenCard
+from DatetimeLabel import *
 from TSO_State import TSO_State
 
 
@@ -23,12 +24,29 @@ class CustomerDetailsScreen(QtWidgets.QMainWindow):
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
+            'mainScreen': ('mainScreen', MainScreen),
             self.pushButton_2: (('paymentScreen', PaymentScreen),
                                 ('paymentScreenCard', PaymentScreenCard))
         }
 
+        self.init_timer()
+
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
+
+    def init_timer(self):
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+    def update_timedelay(self):
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -68,6 +86,7 @@ class CustomerDetailsScreen(QtWidgets.QMainWindow):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.label_3 = QtWidgets.QLabel(self.centralwidget)
         self.label_3.setObjectName("label_3")
+        self.label_3.setAlignment(QtCore.Qt.AlignHCenter)
         self.gridLayout_2.addWidget(self.label_3, 1, 0, 1, 1)
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit.setObjectName("lineEdit")
@@ -109,21 +128,29 @@ class CustomerDetailsScreen(QtWidgets.QMainWindow):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("CustomerDetailsScreen", "CustomerDetailsScreen"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.label_3.setText(_translate("MainWindow", "TextLabel"))
-        self.label_2.setText(_translate("MainWindow", "TextLabel"))
-        self.label_4.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton1"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
+        self.label.setText(_translate("MainWindow", "Для получения электронной копии чека введите:"))
+        self.label_3.setText(_translate("MainWindow", "и/или"))
+        self.label_2.setText(_translate("MainWindow", "Номер мобильного телефона"))
+        self.label_4.setText(_translate("MainWindow", "Адрес электронной почты"))
+        self.pushButton.setText(_translate("MainWindow", "Выход"))
+        self.pushButton_2.setText(_translate("MainWindow", "Пропустить"))
+
+    def stop_timer(self):
+        self.delay_timer.stop()
+        self.timer.stop()
 
     def showScreen(self):
+        self.stop_timer()
+
         #payType = 'CASH'
         payType = 'CARD'
 
         sender = self.sender()
-        if sender == self.pushButton:
+        if sender == self.delay_timer:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+        elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
         elif sender == self.pushButton_2:
             if payType == 'CASH':

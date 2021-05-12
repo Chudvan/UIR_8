@@ -35,6 +35,7 @@ class Logic(QObject):
         if self.actual:
             #print(self.data)
             self.new_screen.emit(r.status_code)
+        self.thread().quit()
 
 
 class PetrolsScreen(QtWidgets.QMainWindow):
@@ -71,7 +72,7 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.data = None
 
     def init_logic(self):
-        self.thread = QtCore.QThread()
+        self.thread = QtCore.QThread(self)
         self.logic = Logic()
         self.logic.moveToThread(self.thread)
         self.logic.new_screen.connect(self.showScreen)
@@ -202,23 +203,35 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.delay_timer.stop()
         self.timer.stop()
 
+    def terminate_logic(self):
+        self.logic.actual = False
+        if self.thread.isRunning():
+            print('if')
+            self.thread.quit()
+            self.thread.wait()
+            self.thread.terminate()
+            self.thread.wait()
+        print(self.thread.isFinished(), self.thread.isRunning())
+
     def showScreen(self, status_code=None):
         self.stop_timer()
+        self.terminate_logic()
 
         sender = self.sender()
 
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
-            self.logic.actual = False
+            #self.logic.actual = False
         elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
-            self.logic.actual = False
+            #self.logic.actual = False
         elif status_code == 200:
             screen_name, screen_class = self._dictButtons['petrols']
         elif status_code == 503:
             screen_name, screen_class = self._dictButtons['errorScreen']
         else:
             raise Exception
+
         setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()

@@ -8,3 +8,4 @@ class TSO_State:
         self.POS=pos
 
         self.TSO_number = number
+        self.id = 1

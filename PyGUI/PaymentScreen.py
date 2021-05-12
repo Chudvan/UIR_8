@@ -9,8 +9,9 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from MainScreen import MainScreen
+from MainScreen import MainScreen, MAXIMUM_AMOUNT
 from InfoScreen import InfoScreen
+from DatetimeLabel import *
 from TSO_State import TSO_State
 
 
@@ -19,14 +20,50 @@ class PaymentScreen(QtWidgets.QMainWindow):
         super(PaymentScreen, self).__init__()
         self.setupUi()
         self.state = state
+        self._sum = 0
+        self.num_bills = 0
+        self.maximum_amount = MAXIMUM_AMOUNT
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
+            'mainScreen': ('mainScreen', MainScreen),
             self.pushButton_2: ('infoScreen', InfoScreen)
         }
 
+        self.init_timer()
+
+        self.lineEdit_7.setText(str(self._sum))
+        self.lineEdit_3.setText(str(self.num_bills))
+        self.lineEdit.setText(str(self.maximum_amount))
+
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
+        self.pushButton_3.clicked.connect(self.update_sum)
+
+    def init_timer(self):
+        self.delay_timer = QtCore.QTimer()
+        self.delay_timer.timeout.connect(self.showScreen)
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timedelay)
+        self.decrease = 0
+        set_current_time(self.label_6, self.decrease)
+        self.delay_timer.start(TIMER_DELAY * 1000)
+        self.timer.start(1 * 1000)
+
+    def update_timedelay(self):
+        self.decrease += 1
+        set_current_time(self.label_6, self.decrease)
+
+    def update_sum(self):
+        if int(self.spinBox.text()) == 0:
+            return
+        elif self._sum + int(self.spinBox.text()) > int(self.lineEdit.text()):
+            return
+        self._sum += int(self.spinBox.text())
+        self.num_bills += 1
+        self.spinBox.setValue(0)
+        self.lineEdit_7.setText(str(self._sum))
+        self.lineEdit_3.setText(str(self.num_bills))
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -47,6 +84,13 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.horizontalLayout_2.addWidget(self.label_6)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
+        self.spinBox = QtWidgets.QSpinBox(self.centralwidget)
+        self.spinBox.setObjectName("spinBox")
+        self.spinBox.setMaximum(5000)
+        self.horizontalLayout_2.addWidget(self.spinBox)
+        self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_3.setObjectName("pushButton_3")
+        self.horizontalLayout_2.addWidget(self.pushButton_3)
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_3.addItem(spacerItem1)
@@ -72,15 +116,18 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.gridLayout.setObjectName("gridLayout")
         self.label_13 = QtWidgets.QLabel(self.centralwidget)
         self.label_13.setObjectName("label_13")
+        self.label_13.setAlignment(QtCore.Qt.AlignRight)
         self.gridLayout.addWidget(self.label_13, 1, 0, 1, 1)
         self.label_7 = QtWidgets.QLabel(self.centralwidget)
         self.label_7.setObjectName("label_7")
+        self.label_7.setAlignment(QtCore.Qt.AlignRight)
         self.gridLayout.addWidget(self.label_7, 0, 0, 1, 1)
         self.label_8 = QtWidgets.QLabel(self.centralwidget)
         self.label_8.setObjectName("label_8")
         self.gridLayout.addWidget(self.label_8, 0, 2, 1, 1)
         self.lineEdit_3 = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit_3.setObjectName("lineEdit_3")
+        self.lineEdit_3.setEnabled(False)
         self.gridLayout.addWidget(self.lineEdit_3, 0, 1, 1, 1)
         self.label_14 = QtWidgets.QLabel(self.centralwidget)
         self.label_14.setObjectName("label_14")
@@ -93,9 +140,11 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.gridLayout.addWidget(self.label_16, 2, 2, 1, 1)
         self.lineEdit_6 = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit_6.setObjectName("lineEdit_6")
+        self.lineEdit_6.setEnabled(False)
         self.gridLayout.addWidget(self.lineEdit_6, 2, 1, 1, 1)
         self.lineEdit_7 = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit_7.setObjectName("lineEdit_7")
+        self.lineEdit_7.setEnabled(False)
         self.gridLayout.addWidget(self.lineEdit_7, 1, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
         self.gridLayout_5.addLayout(self.verticalLayout, 0, 1, 1, 1)
@@ -148,6 +197,8 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.horizontalLayout.addWidget(self.label_18)
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit.setObjectName("lineEdit")
+        self.lineEdit.setEnabled(False)
+        self.lineEdit.setMaximumWidth(144)
         self.horizontalLayout.addWidget(self.lineEdit)
         self.verticalLayout_5.addLayout(self.horizontalLayout)
         self.label_19 = QtWidgets.QLabel(self.centralwidget)
@@ -157,6 +208,10 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.label_20 = QtWidgets.QLabel(self.centralwidget)
         self.label_20.setAlignment(QtCore.Qt.AlignCenter)
         self.label_20.setObjectName("label_20")
+        font = self.label_20.font()
+        font.setPixelSize(10)
+        self.label_20.setFont(font)
+        self.label_20.setStyleSheet("color: red")
         self.verticalLayout_5.addWidget(self.label_20)
         self.horizontalLayout_4.addLayout(self.verticalLayout_5)
         spacerItem8 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -182,28 +237,51 @@ class PaymentScreen(QtWidgets.QMainWindow):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("PaymentScreen", "PaymentScreen"))
-        self.label_5.setText(_translate("MainWindow", "TextLabel"))
+        self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
-        self.label_9.setText(_translate("MainWindow", "TextLabel"))
-        self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.label_13.setText(_translate("MainWindow", "TextLabel"))
-        self.label_7.setText(_translate("MainWindow", "TextLabel"))
-        self.label_8.setText(_translate("MainWindow", "TextLabel"))
-        self.label_14.setText(_translate("MainWindow", "TextLabel"))
-        self.label_15.setText(_translate("MainWindow", "TextLabel"))
-        self.label_16.setText(_translate("MainWindow", "TextLabel"))
+        self.label_9.setText(_translate("MainWindow", "Внесите наличные"))
+        self.label.setText(_translate("MainWindow", "Вставьте деньги в приёмник купюр"))
+        self.label_13.setText(_translate("MainWindow", "на сумму"))
+        self.label_7.setText(_translate("MainWindow", "Принято"))
+        self.label_8.setText(_translate("MainWindow", "купюр,"))
+        self.label_14.setText(_translate("MainWindow", "Ориентировочное\nкол-во литров:"))
+        self.label_15.setText(_translate("MainWindow", "₽"))
+        self.label_16.setText(_translate("MainWindow", ""))
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
         self.label_3.setText(_translate("MainWindow", "TextLabel"))
-        self.label_18.setText(_translate("MainWindow", "TextLabel"))
-        self.label_19.setText(_translate("MainWindow", "TextLabel"))
-        self.label_20.setText(_translate("MainWindow", "TextLabel"))
-        self.pushButton.setText(_translate("MainWindow", "PushButton1"))
-        self.pushButton_2.setText(_translate("MainWindow", "PushButton2"))
+        self.label_18.setText(_translate("MainWindow", "Максимальная сумма заказа"))
+        self.label_19.setText(_translate("MainWindow", "За данную операцию комиссия не взимается!"))
+        self.label_20.setText(_translate("MainWindow", '*Внесением денежных средств, Вы соглашаетесь \
+с условиями Оферты (раздел "Информация" титульного экрана)'))
+        self.pushButton.setText(_translate("MainWindow", "Выход"))
+        self.pushButton_2.setText(_translate("MainWindow", "Оплатить"))
+        self.pushButton_3.setText(_translate("MainWindow", "Внести"))
+
+    def stop_timer(self):
+        self.delay_timer.stop()
+        self.timer.stop()
 
     def showScreen(self):
+        self.stop_timer()
+
         sender = self.sender()
-        screen_name, screen_class = self._dictButtons[sender]
-        setattr(self, screen_name, screen_class(self.state))
+        if sender == self.delay_timer or sender == self.pushButton:
+            screen_name, screen_class = self._dictButtons['mainScreen']
+            if self._sum:
+                self.label_19.setText("Сумма заказа > 0. Возврат на предыдущие экраны невозможен.")
+                self.label_19.setStyleSheet("color: red")
+                self.verticalLayout_5.removeWidget(self.label_20)
+                self.horizontalLayout_2.removeWidget(self.label_5)
+                self.horizontalLayout_2.removeWidget(self.label_6)
+                self.label_5.hide()
+                self.label_6.hide()
+                self.label_20.hide()
+                self.pushButton.setEnabled(False)
+                return
+        else:
+            screen_name, screen_class = self._dictButtons[sender]
+
+        setattr(self, screen_name, screen_class(self.state, 2))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

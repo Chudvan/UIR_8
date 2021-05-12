@@ -38,6 +38,7 @@ class Logic(QObject):
         if self.actual:
             #print(self.data)
             self.new_screen.emit(self.data)
+        self.thread().quit()
 
 
 class PumpsScreen(QtWidgets.QMainWindow):
@@ -76,7 +77,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.data = None
 
     def init_logic(self):
-        self.thread = QtCore.QThread()
+        self.thread = QtCore.QThread(self)
         self.logic = Logic()
         self.logic.moveToThread(self.thread)
         self.logic.new_screen.connect(self.showScreen)
@@ -213,14 +214,32 @@ class PumpsScreen(QtWidgets.QMainWindow):
         if sender.status == 'UNAVAILABLE':
             print('UNAVAILABLE')
             return
+        pump = {
+            'number': sender.number,
+            'status': sender.status
+        }
+        self.data = {
+            'pump': pump
+        }
         self.thread.start()
 
     def stop_timer(self):
         self.delay_timer.stop()
         self.timer.stop()
 
+    def terminate_logic(self):
+        self.logic.actual = False
+        if self.thread.isRunning():
+            print('if')
+            self.thread.quit()
+            self.thread.wait()
+            self.thread.terminate()
+            self.thread.wait()
+        print(self.thread.isFinished(), self.thread.isRunning())
+
     def showScreen(self, data=None):
         self.stop_timer()
+        self.terminate_logic()
 
         print('data', data)
         if data:
@@ -228,22 +247,16 @@ class PumpsScreen(QtWidgets.QMainWindow):
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
-            self.logic.actual = False
+            #self.logic.actual = False
         elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
-            self.logic.actual = False
+            #self.logic.actual = False
         elif self.data is None:
             screen_name, screen_class = self._dictButtons['errorScreen']
         elif self.data:
             #print(self.data)
             screen_name, screen_class = self._dictButtons['pumps']
-        # else:
-        #     print('else')
-        #     if sender.status == 'UNAVAILABLE':
-        #         print('here')
-        #         return
-        #     self.thread.start()
-        #     screen_name, screen_class = self._dictButtons['pumps']
+
         setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
