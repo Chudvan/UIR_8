@@ -1,15 +1,14 @@
 from datetime import datetime
 
 
-def get_datetime():
+def get_datetime(format):
     current = datetime.today()
-    day = current.day
-    month = current.month
-    year = current.year
-    hour = current.hour
-    minute = current.minute
-    return "{day}.{month}.{year}\n{hour}:{minute}".format(day=day, month=month,
-                                                         year=year, hour=hour, minute=minute)
+
+    d = {
+        'YYYY-MM-DDTHH:MM': current.strftime('%Y-%m-%dT%H:%M'),
+        'DD.MM.YYYY\nHH:MM': current.strftime('%d.%m.%Y\n%H:%M')
+    }
+    return d[format]
 
 
 def time_before_signal():
@@ -18,7 +17,7 @@ def time_before_signal():
 
 
 def set_current_datetime(label):
-    label.setText(get_datetime())
+    label.setText(get_datetime('DD.MM.YYYY\nHH:MM'))
 
 
 TIMER_DELAY = 15

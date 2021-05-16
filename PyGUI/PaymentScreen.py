@@ -16,13 +16,15 @@ from TSO_State import TSO_State
 
 
 class PaymentScreen(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data={}):
         super(PaymentScreen, self).__init__()
-        self.setupUi()
         self.state = state
-        self._sum = 0
+        self.data = data
         self.num_bills = 0
+        self._sum = 0
+        self.litres = 0
         self.maximum_amount = MAXIMUM_AMOUNT
+        self.setupUi()
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -32,13 +34,11 @@ class PaymentScreen(QtWidgets.QMainWindow):
 
         self.init_timer()
 
-        self.lineEdit_7.setText(str(self._sum))
-        self.lineEdit_3.setText(str(self.num_bills))
-        self.lineEdit.setText(str(self.maximum_amount))
-
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
         self.pushButton_3.clicked.connect(self.update_sum)
+
+        print(self.data)
 
     def init_timer(self):
         self.delay_timer = QtCore.QTimer()
@@ -54,16 +54,27 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
+    def update_data(self):
+        self.data['volume'] = int(self.litres * 100) / 100
+        self.data['amount'] = self._sum
+        self.data['inscription_num'] = 2
+        self.data['dateTime'] = get_datetime('YYYY-MM-DDTHH:MM')
+
     def update_sum(self):
         if int(self.spinBox.text()) == 0:
             return
         elif self._sum + int(self.spinBox.text()) > int(self.lineEdit.text()):
             return
-        self._sum += int(self.spinBox.text())
         self.num_bills += 1
-        self.spinBox.setValue(0)
-        self.lineEdit_7.setText(str(self._sum))
+        self._sum += int(self.spinBox.text())
+        if self.data:
+            self.litres = self._sum / self.data['petrol']['price']
         self.lineEdit_3.setText(str(self.num_bills))
+        self.lineEdit_7.setText(str(self._sum))
+        self.lineEdit_6.setText('{0:.2f}'.format(self.litres))
+        self.spinBox.setValue(0)
+        if self._sum:
+            self.pushButton_2.setEnabled(True)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -247,15 +258,24 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.label_14.setText(_translate("MainWindow", "Ориентировочное\nкол-во литров:"))
         self.label_15.setText(_translate("MainWindow", "₽"))
         self.label_16.setText(_translate("MainWindow", ""))
-        self.label_2.setText(_translate("MainWindow", "TextLabel"))
-        self.label_3.setText(_translate("MainWindow", "TextLabel"))
+        if self.data:
+            self.label_2.setText(_translate("MainWindow",
+                                            str(self.data['pump']['number']) + ' : ' + self.data['pump']['status']))
+            self.label_3.setText(_translate("MainWindow",
+                                            self.data['petrol']['petrolType'] + ' : ' + str(self.data['petrol']['price'])))
         self.label_18.setText(_translate("MainWindow", "Максимальная сумма заказа"))
         self.label_19.setText(_translate("MainWindow", "За данную операцию комиссия не взимается!"))
         self.label_20.setText(_translate("MainWindow", '*Внесением денежных средств, Вы соглашаетесь \
 с условиями Оферты (раздел "Информация" титульного экрана)'))
         self.pushButton.setText(_translate("MainWindow", "Выход"))
         self.pushButton_2.setText(_translate("MainWindow", "Оплатить"))
+        self.pushButton_2.setEnabled(False)
         self.pushButton_3.setText(_translate("MainWindow", "Внести"))
+
+        self.lineEdit_7.setText(str(self._sum))
+        self.lineEdit_3.setText(str(self.num_bills))
+        self.lineEdit_6.setText(str(self.litres))
+        self.lineEdit.setText(str(self.maximum_amount))
 
     def stop_timer(self):
         self.delay_timer.stop()
@@ -281,7 +301,9 @@ class PaymentScreen(QtWidgets.QMainWindow):
         else:
             screen_name, screen_class = self._dictButtons[sender]
 
-        setattr(self, screen_name, screen_class(self.state, 2))
+            self.update_data()
+
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

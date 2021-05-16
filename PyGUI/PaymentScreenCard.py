@@ -16,13 +16,14 @@ from TSO_State import TSO_State
 
 
 class PaymentScreenCard(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data = None):
         super(PaymentScreenCard, self).__init__()
-        self.maximum_amount = MAXIMUM_AMOUNT
-        self.setupUi()
         self.state = state
+        self.data = data
         self._sum = 0
         self.liters = 0
+        self.maximum_amount = MAXIMUM_AMOUNT
+        self.setupUi()
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -32,14 +33,12 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
 
         self.init_timer()
 
-        self.doubleSpinBox.setValue(self._sum)
-        self.doubleSpinBox_2.setValue(self.liters)
-        self.lineEdit.setText(str(self.maximum_amount))
-
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
         self.doubleSpinBox.valueChanged.connect(self.update_spin_boxes)
         self.doubleSpinBox_2.valueChanged.connect(self.update_spin_boxes)
+
+        print(self.data)
 
     def init_timer(self):
         self.delay_timer = QtCore.QTimer()
@@ -222,6 +221,10 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.label_19.setText(_translate("MainWindow", "За данную операцию комиссия не взимается!"))
         self.pushButton.setText(_translate("MainWindow", "Выход"))
         self.pushButton_2.setText(_translate("MainWindow", "Оплатить"))
+
+        self.doubleSpinBox.setValue(self._sum)
+        self.doubleSpinBox_2.setValue(self.liters)
+        self.lineEdit.setText(str(self.maximum_amount))
 
     def stop_timer(self):
         self.delay_timer.stop()

@@ -28,7 +28,7 @@ class MainScreen(QtWidgets.QMainWindow):
         self.setupUi()
         self.state = state
         self.choice_of_inscription()
-        self.data = data
+        self.data = {}
 
         self._dictButtons = {
             self.pushButton: ('infoScreen', InfoScreen),
@@ -51,6 +51,9 @@ class MainScreen(QtWidgets.QMainWindow):
         set_current_datetime(self.label_5)
         self.timer.stop()
         self.timer.start(60 * 1000)
+
+    def update_data(self):
+        self.data['inscription_num'] = 0
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -188,7 +191,8 @@ class MainScreen(QtWidgets.QMainWindow):
         sender = self.sender()
         screen_name, screen_class = self._dictButtons[self.sender()]
         if sender == self.pushButton:
-            setattr(self, screen_name, screen_class(self.state, 0))
+            self.update_data()
+            setattr(self, screen_name, screen_class(self.state, self.data))
         else:
             setattr(self, screen_name, screen_class(self.state))
         _screen = getattr(self, screen_name, None)

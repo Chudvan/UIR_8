@@ -68,13 +68,13 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.init_logic()
 
         self.pushButton.clicked.connect(self.showScreen)
-        n = len(self.data) if self.data else 0
+        n = len(self.data['pump']) if self.data['pump'] else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             pushButton = getattr(self, pushButton_name, None)
             pushButton.clicked.connect(self.start_logic)
 
-        self.data = None
+        print(self.data)
 
     def init_logic(self):
         self.thread = QtCore.QThread(self)
@@ -97,8 +97,15 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
+    def update_data(self, button):
+        pump = {
+            'number': button.number,
+            'status': button.status
+        }
+        self.data['pump'] = pump
+
     def create_buttons(self):
-        n = len(self.data) if self.data else 0
+        n = len(self.data['pump']) if self.data['pump'] else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
@@ -187,9 +194,9 @@ class PumpsScreen(QtWidgets.QMainWindow):
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             pushButton = getattr(self, pushButton_name, None)
-            pushButton.setText(str(self.data[i]['number']) + ' : ' + self.data[i]['status'])
-            pushButton.number = self.data[i]['number']
-            pushButton.status = self.data[i]['status']
+            pushButton.setText(str(self.data['pump'][i]['number']) + ' : ' + self.data['pump'][i]['status'])
+            pushButton.number = self.data['pump'][i]['number']
+            pushButton.status = self.data['pump'][i]['status']
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
@@ -214,13 +221,9 @@ class PumpsScreen(QtWidgets.QMainWindow):
         if sender.status == 'UNAVAILABLE':
             print('UNAVAILABLE')
             return
-        pump = {
-            'number': sender.number,
-            'status': sender.status
-        }
-        self.data = {
-            'pump': pump
-        }
+
+        self.update_data(sender)
+
         self.thread.start()
 
     def stop_timer(self):
@@ -243,7 +246,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
 
         print('data', data)
         if data:
-            self.data = data
+            self.data['petrol'] = data
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
@@ -251,9 +254,9 @@ class PumpsScreen(QtWidgets.QMainWindow):
         elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
             #self.logic.actual = False
-        elif self.data is None:
+        elif 'petrol' not in self.data.keys():
             screen_name, screen_class = self._dictButtons['errorScreen']
-        elif self.data:
+        elif self.data['petrol']:
             #print(self.data)
             screen_name, screen_class = self._dictButtons['pumps']
 

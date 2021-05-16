@@ -58,7 +58,7 @@ class PetrolsScreen(QtWidgets.QMainWindow):
 
         self.pushButton.clicked.connect(self.showScreen)
 
-        n = len(self.data) if self.data else 0
+        n = len(self.data['petrol']) if self.data['petrol'] else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             pushButton = getattr(self, pushButton_name, None)
@@ -69,7 +69,7 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         # self.pushButton_4.clicked.connect(self.showScreen)
         # self.pushButton_5.clicked.connect(self.showScreen)
 
-        self.data = None
+        #print(self.data)
 
     def init_logic(self):
         self.thread = QtCore.QThread(self)
@@ -92,8 +92,15 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
+    def update_data(self, button):
+        petrol = {
+            'petrolType': button.petrolType,
+            'price': button.price
+        }
+        self.data['petrol'] = petrol
+
     def create_buttons(self):
-        n = len(self.data) if self.data else 0
+        n = len(self.data['petrol']) if self.data['petrol'] else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
@@ -172,13 +179,13 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslate_buttons(self):
-        n = len(self.data) if self.data else 0
+        n = len(self.data['petrol']) if self.data['petrol'] else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             pushButton = getattr(self, pushButton_name, None)
-            pushButton.setText(self.data[i]['petrolType'] + ' : ' + str(self.data[i]['price']))
-            pushButton.petrolType = self.data[i]['petrolType']
-            pushButton.price = self.data[i]['price']
+            pushButton.setText(self.data['petrol'][i]['petrolType'] + ' : ' + str(self.data['petrol'][i]['price']))
+            pushButton.petrolType = self.data['petrol'][i]['petrolType']
+            pushButton.price = self.data['petrol'][i]['price']
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
@@ -197,6 +204,9 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.pushButton.setText(_translate("MainWindow", "Выход"))
 
     def start_logic(self):
+        sender = self.sender()
+        self.update_data(sender)
+
         self.thread.start()
 
     def stop_timer(self):
@@ -231,6 +241,7 @@ class PetrolsScreen(QtWidgets.QMainWindow):
             screen_name, screen_class = self._dictButtons['errorScreen']
         else:
             raise Exception
+        print(self.data)
 
         setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)

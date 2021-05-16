@@ -50,6 +50,15 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
+    def update_data(self, button):
+        payType = {
+            'Наличные': 'CASH',
+            'Банковская карта': 'CARD',
+            'Топливная карта': 'PCARD'
+        }
+
+        self.data['payType'] = payType[button.text()]
+
     def setupUi(self):
         self.setObjectName("MainWindow")
         self.resize(800, 600)
@@ -145,8 +154,9 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
         elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
         else:
+            self.update_data(sender)
             screen_name, screen_class = self._dictButtons['paymentMethods']
-        setattr(self, screen_name, screen_class(self.state))
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

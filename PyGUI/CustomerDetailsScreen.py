@@ -17,10 +17,11 @@ from TSO_State import TSO_State
 
 
 class CustomerDetailsScreen(QtWidgets.QMainWindow):
-    def __init__(self, state):
+    def __init__(self, state, data=None):
         super(CustomerDetailsScreen, self).__init__()
         self.setupUi()
         self.state = state
+        self.data = data
 
         self._dictButtons = {
             self.pushButton: ('mainScreen', MainScreen),
@@ -33,6 +34,8 @@ class CustomerDetailsScreen(QtWidgets.QMainWindow):
 
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
+
+        print(self.data)
 
     def init_timer(self):
         self.delay_timer = QtCore.QTimer()
@@ -47,6 +50,13 @@ class CustomerDetailsScreen(QtWidgets.QMainWindow):
     def update_timedelay(self):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
+
+    def update_data(self):
+        customer_details = {
+            'telephone': self.lineEdit.text(),
+            'email': self.lineEdit_2.text()
+        }
+        self.data['customerDetails'] = customer_details
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -144,20 +154,20 @@ class CustomerDetailsScreen(QtWidgets.QMainWindow):
     def showScreen(self):
         self.stop_timer()
 
-        #payType = 'CASH'
-        payType = 'CARD'
-
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
         elif sender == self.pushButton:
             screen_name, screen_class = self._dictButtons[sender]
         elif sender == self.pushButton_2:
-            if payType == 'CASH':
+            if self.data['payType'] == 'CASH':
                 screen_name, screen_class = self._dictButtons[sender][0]
-            elif payType == 'CARD':
+            elif self.data['payType'] in ['CARD', 'PCARD']:
                 screen_name, screen_class = self._dictButtons[sender][1]
-        setattr(self, screen_name, screen_class(self.state))
+
+            self.update_data()
+
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

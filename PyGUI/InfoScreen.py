@@ -20,6 +20,7 @@ SLEEP_DELAY = 3
 
 class Logic(QObject):
     new_screen = pyqtSignal(object)
+    stop_timer = pyqtSignal()
 
     def __init__(self, inscription, screen=None):
         super(Logic, self).__init__()
@@ -38,30 +39,66 @@ class Logic(QObject):
             # print(r)
             if r.status_code == 200:
                 self.data = r.json()
+            print(r.status_code)
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
         elif self.inscription == "Следуйте инструкциям на пин-паде":
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
             pass
         elif self.inscription == "Подождите, идёт печать":
+            self.data = self.screen.data
+            del self.data['inscription_num']
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
             self.screen.choice_of_inscription(3)
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+            try:
+                r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
+            except requests.exceptions.ConnectionError:
+                print('ERROR')
+                return
+            if r.status_code == 400 and "Pump is BUSY now!" in r.text:
+                self.screen.horizontalLayout_2.removeWidget(self.screen.label_5)
+                self.screen.horizontalLayout_2.removeWidget(self.screen.label_6)
+                self.screen.label_5.hide()
+                self.screen.label_6.hide()
+                self.stop_timer.emit()
+                while r.status_code == 400 and "PumpState is irrelevant!" not in r.text:
+                    self.screen.choice_of_inscription(5)
+                    QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+                    r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
+                    print('try')
 
+                if r.status_code == 400:
+                    self.data['pump']['status'] = 'FREE'
+                    try:
+                        r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
+                    except requests.exceptions.ConnectionError:
+                        print('ERROR')
+                        return
+
+            if r.status_code == 200:
+                self.screen.choice_of_inscription(2)
+                QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+                self.screen.choice_of_inscription(4)
+                QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+
+            self.data = r
+            print(r)
         if self.actual:
             self.new_screen.emit(self.data)
         self.thread().quit()
 
 
 class InfoScreen(QtWidgets.QMainWindow):
-    def __init__(self, state, inscription_num):
+    def __init__(self, state, data):
         from MainScreen import MainScreen
         from ErrorScreen import ErrorScreen
         from PumpsScreen import PumpsScreen
         super(InfoScreen, self).__init__()
         self.setupUi()
         self.state = state
+        inscription_num = data['inscription_num']
         self.choice_of_inscription(inscription_num)
-        self.data = None
+        self.data = {} if inscription_num == 0 else data
 
         self._dictButtons = {
             'mainScreen': ('mainScreen', MainScreen),
@@ -80,11 +117,14 @@ class InfoScreen(QtWidgets.QMainWindow):
         # self.c.new_screen.connect(self.showScreen)
         # self.start_process()
 
+        print(self.data)
+
     def init_logic(self):
         self.thread = QtCore.QThread(self)
         self.logic = Logic(self.get_inscription(), self)
         self.logic.moveToThread(self.thread)
         self.logic.new_screen.connect(self.showScreen)
+        self.logic.stop_timer.connect(self.stop_timer)
         self.thread.started.connect(self.logic.run)
 
     def init_timer(self):
@@ -100,6 +140,10 @@ class InfoScreen(QtWidgets.QMainWindow):
     def update_timedelay(self):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
+
+    def update_data(self):
+        self.data['terminalNumber'] = self.state.TSO_number
+        self.data['id'] = self.state.id
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -147,7 +191,8 @@ class InfoScreen(QtWidgets.QMainWindow):
                            "Следуйте инструкциям на пин-паде",
                            "Подождите, идёт печать",
                            "Возьмите напечатанную квитанцию заказа",
-                           "Возьмите напечатанный чек"]
+                           "Возьмите напечатанный чек",
+                           "ТРК занята. Ожидайте пока ТРК освободится."]
 
         inscription = inscription_list[inscription_num]
         self.label.setText(inscription)
@@ -178,20 +223,39 @@ class InfoScreen(QtWidgets.QMainWindow):
             self.thread.wait()
         print(self.thread.isFinished(), self.thread.isRunning())
 
+    def decrease_id(self):
+        self.state.id += 1
+
+    def create_inscription(self, inscription):
+        return {'inscription': inscription}
+
     def showScreen(self, data=None):
         self.stop_timer()
         self.terminate_logic()
 
         print(data)
-        if data:
-            self.data = data
+        if data and type(data) != requests.models.Response:
+            self.update_data()
+            self.data['pump'] = data
+
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
             #self.logic.actual = False
-        elif self.data is None:
+        elif type(data) == requests.models.Response:
+            if data.status_code == 200:
+                screen_name, screen_class = self._dictButtons['mainScreen']
+            elif data.status_code == 400 or 503:
+                screen_name, screen_class = self._dictButtons['errorScreen']
+                inscription = data.text if data.status_code == 400 else "Нет связи с ТРК. Заправка невозможна!"
+                self.data = self.create_inscription(inscription)
+
+            self.decrease_id()
+        elif 'pump' not in self.data.keys():
             screen_name, screen_class = self._dictButtons['errorScreen']
-        elif self.data:
+            inscription = "Нет связи с ТРК. Заправка невозможна!"
+            self.data = self.create_inscription(inscription)
+        elif self.data['pump']:
             screen_name, screen_class = self._dictButtons['pumpsScreen']
 
         setattr(self, screen_name, screen_class(self.state, self.data))
@@ -205,6 +269,9 @@ if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
     state = TSO_State(currencydetector=False)
-    ui = InfoScreen(state, 0)
+    data = {
+        'inscription_num': 0
+    }
+    ui = InfoScreen(state, data)
     ui.show()
     sys.exit(app.exec_())
