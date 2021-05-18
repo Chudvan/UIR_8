@@ -17,7 +17,7 @@ from TSO_State import TSO_State
 
 ONLINE = True
 BANK_ONLINE = True
-PETROL_ONLINE = True
+PETROL_ONLINE = False
 
 MAXIMUM_AMOUNT = 15_000
 
@@ -45,6 +45,7 @@ class MainScreen(QtWidgets.QMainWindow):
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
         self.pushButton_3.clicked.connect(self.showScreen)
+        print('id', self.state.id)
 
     def update_datetime(self):
         # print('here')
@@ -203,7 +204,7 @@ class MainScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    state = TSO_State(currencydetector=False)
+    state = TSO_State(currencydetector=True)
     ui = MainScreen(state)
     ui.show()
     sys.exit(app.exec_())

@@ -18,9 +18,14 @@ import requests
 SLEEP_DELAY = 3
 
 
+def create_inscription(inscription):
+    return {'inscription': inscription}
+
+
 class Logic(QObject):
     new_screen = pyqtSignal(object)
     stop_timer = pyqtSignal()
+    create_buttons = pyqtSignal()
 
     def __init__(self, inscription, screen=None):
         super(Logic, self).__init__()
@@ -28,6 +33,11 @@ class Logic(QObject):
         self.data = None
         self.actual = True
         self.screen = screen
+
+    def create_buttons_end_thread(self):
+        QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+        self.create_buttons.emit()
+        self.thread().quit()
 
     def run(self):
         if self.inscription == "Загрузка":
@@ -42,8 +52,25 @@ class Logic(QObject):
             print(r.status_code)
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
         elif self.inscription == "Следуйте инструкциям на пин-паде":
+            self.data = self.screen.data
+            print("self.data", self.data)
+            if self.data['payType'] == 'CARD':
+                from MainScreen import BANK_ONLINE
+                if BANK_ONLINE:
+                    print('Есть связь с банковским процессингом')
+                    self.create_buttons_end_thread()
+                    return
+                else:
+                    self.data = create_inscription('Нет связи с банковским/топливным процессингом')
+            elif self.data['payType'] == 'PCARD':
+                from MainScreen import PETROL_ONLINE
+                if PETROL_ONLINE:
+                    print('Есть связь с топливным процессингом')
+                    self.create_buttons_end_thread()
+                    return
+                else:
+                    self.data = create_inscription('Нет связи с банковским/топливным процессингом')
             QtCore.QThread.msleep(SLEEP_DELAY * 1000)
-            pass
         elif self.inscription == "Подождите, идёт печать":
             self.data = self.screen.data
             del self.data['inscription_num']
@@ -125,6 +152,7 @@ class InfoScreen(QtWidgets.QMainWindow):
         self.logic.moveToThread(self.thread)
         self.logic.new_screen.connect(self.showScreen)
         self.logic.stop_timer.connect(self.stop_timer)
+        self.logic.create_buttons.connect(self.create_buttons)
         self.thread.started.connect(self.logic.run)
 
     def init_timer(self):
@@ -144,6 +172,27 @@ class InfoScreen(QtWidgets.QMainWindow):
     def update_data(self):
         self.data['terminalNumber'] = self.state.TSO_number
         self.data['id'] = self.state.id
+
+    def create_buttons(self):
+        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton.setObjectName("pushButton")
+        self.pushButton.setText("Успешная транзакция")
+        self.horizontalLayout_2.addWidget(self.pushButton)
+        self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_2.setText("Неуспешная транзакция")
+        self.horizontalLayout_2.addWidget(self.pushButton_2)
+
+        self.pushButton.clicked.connect(self.continue_logic)
+        self.pushButton_2.clicked.connect(self.showScreen)
+
+    def delete_buttons(self):
+        self.horizontalLayout_2.removeWidget(self.pushButton)
+        self.horizontalLayout_2.removeWidget(self.pushButton_2)
+        self.pushButton.hide()
+        self.pushButton_2.hide()
+        self.pushButton.deleteLater()
+        self.pushButton_2.deleteLater()
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -223,40 +272,57 @@ class InfoScreen(QtWidgets.QMainWindow):
             self.thread.wait()
         print(self.thread.isFinished(), self.thread.isRunning())
 
-    def decrease_id(self):
-        self.state.id += 1
+    def continue_logic(self):
+        print('continue')
+        self.terminate_logic()
+        self.delete_buttons()
+        inscription_num = 2
+        self.choice_of_inscription(inscription_num)
+        self.init_logic()
+        self.thread.start()
 
-    def create_inscription(self, inscription):
-        return {'inscription': inscription}
+        print(self.data)
 
     def showScreen(self, data=None):
         self.stop_timer()
         self.terminate_logic()
 
         print(data)
-        if data and type(data) != requests.models.Response:
+        if data and type(data) != requests.models.Response \
+                and type(data) == list:
             self.update_data()
             self.data['pump'] = data
+        elif type(data) == dict and 'inscription' in data.keys():
+            # print('type(data) == dict')
+            self.data = create_inscription(data['inscription'])
 
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
             #self.logic.actual = False
+        elif hasattr(self, 'pushButton_2') and sender == self.pushButton_2:
+            screen_name, screen_class = self._dictButtons['errorScreen']
+            inscription = "Ошибка оплаты"
+            self.data = create_inscription(inscription)
         elif type(data) == requests.models.Response:
             if data.status_code == 200:
                 screen_name, screen_class = self._dictButtons['mainScreen']
             elif data.status_code == 400 or 503:
                 screen_name, screen_class = self._dictButtons['errorScreen']
                 inscription = data.text if data.status_code == 400 else "Нет связи с ТРК. Заправка невозможна!"
-                self.data = self.create_inscription(inscription)
+                self.data = create_inscription(inscription)
 
-            self.decrease_id()
-        elif 'pump' not in self.data.keys():
+            self.state.update_id()
+        elif 'pump' not in self.data.keys() \
+                and 'inscription' not in self.data.keys():
             screen_name, screen_class = self._dictButtons['errorScreen']
             inscription = "Нет связи с ТРК. Заправка невозможна!"
-            self.data = self.create_inscription(inscription)
-        elif self.data['pump']:
+            self.data = create_inscription(inscription)
+        elif 'pump' in self.data.keys():
+            print("self.data", self.data)
             screen_name, screen_class = self._dictButtons['pumpsScreen']
+        elif 'inscription' in self.data.keys():
+            screen_name, screen_class = self._dictButtons['errorScreen']
 
         setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)

@@ -20,7 +20,7 @@ def set_current_datetime(label):
     label.setText(get_datetime('DD.MM.YYYY\nHH:MM'))
 
 
-TIMER_DELAY = 15
+TIMER_DELAY = 120
 
 
 def set_current_time(label, decrease):
