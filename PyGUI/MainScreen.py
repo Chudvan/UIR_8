@@ -16,8 +16,8 @@ from DatetimeLabel import *
 from TSO_State import TSO_State
 
 ONLINE = True
-BANK_ONLINE = True
-PETROL_ONLINE = False
+BANK_ONLINE = False
+PETROL_ONLINE = True
 
 MAXIMUM_AMOUNT = 15_000
 
@@ -46,6 +46,8 @@ class MainScreen(QtWidgets.QMainWindow):
         self.pushButton_2.clicked.connect(self.showScreen)
         self.pushButton_3.clicked.connect(self.showScreen)
         print('id', self.state.id)
+        print('CARD', 'PCARD', 'CASH')
+        print(self.state.CARD, self.state.PCARD, self.state.CASH)
 
     def update_datetime(self):
         # print('here')
@@ -137,31 +139,54 @@ class MainScreen(QtWidgets.QMainWindow):
                                 inscription = None
                             else:
                                 inscription = inscription_list[0]
+                                self.state.PCARD = False
                         else:
                             if PETROL_ONLINE:
                                 inscription = inscription_list[1]
+                                self.state.CARD = False
                             else:
                                 inscription = inscription_list[2]
+                                self.state.CARD = False
+                                self.state.PCARD = False
                     else:
                         inscription = inscription_list[2]
+                        self.state.CARD = False
+                        self.state.PCARD = False
                 else:
                     if self.state.POS:
                         if BANK_ONLINE:
                             if PETROL_ONLINE:
                                 inscription = inscription_list[3]
+                                self.state.CASH = False
                             else:
                                 inscription = inscription_list[4]
+                                self.state.PCARD = False
+                                self.state.CASH = False
                         else:
                             if PETROL_ONLINE:
                                 inscription = inscription_list[5]
+                                self.state.CARD = False
+                                self.state.CASH = False
                             else:
                                 inscription = inscription_list[6]
+                                self.state.CARD = False
+                                self.state.PCARD = False
+                                self.state.CASH = False
                     else:
                         inscription = inscription_list[6]
+                        self.state.CARD = False
+                        self.state.PCARD = False
+                        self.state.CASH = False
             else:
                 inscription = inscription_list[6]
+                self.state.CARD = False
+                self.state.PCARD = False
+                self.state.CASH = False
         else:
             inscription = inscription_list[6]
+            self.state.CARD = False
+            self.state.PCARD = False
+            self.state.CASH = False
         if inscription is None:
             self.verticalLayout.removeWidget(self.label)
             self.label.hide()
@@ -204,7 +229,7 @@ class MainScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    state = TSO_State(currencydetector=True)
+    state = TSO_State(ok=False)
     ui = MainScreen(state)
     ui.show()
     sys.exit(app.exec_())
