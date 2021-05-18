@@ -54,6 +54,12 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
+    def update_data(self):
+        self.data['volume'] = int(self.get_liters() * 100) / 100
+        self.data['amount'] = self.get_sum()
+        self.data['inscription_num'] = 1
+        self.data['dateTime'] = get_datetime('YYYY-MM-DDTHH:MM')
+
     def set_liters(self, value):
         self.liters = value
         if self.get_liters() != self.liters:
@@ -242,8 +248,11 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.label_16.setText(_translate("MainWindow", "Л."))
         self.label_8.setText(_translate("MainWindow", "Руб."))
         self.label_14.setText(_translate("MainWindow", "Ввести литры:"))
-        self.label_2.setText(_translate("MainWindow", "TextLabel"))
-        self.label_3.setText(_translate("MainWindow", "TextLabel"))
+        if self.data:
+            self.label_2.setText(_translate("MainWindow",
+                                            str(self.data['pump']['number']) + ' : ' + self.data['pump']['status']))
+            self.label_3.setText(_translate("MainWindow",
+                                            self.data['petrol']['petrolType'] + ' : ' + str(self.data['petrol']['price'])))
         self.label_18.setText(_translate("MainWindow", "Максимальная сумма заказа"))
         self.label_19.setText(_translate("MainWindow", "За данную операцию комиссия не взимается!"))
         self.pushButton.setText(_translate("MainWindow", "Выход"))
@@ -265,7 +274,9 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
             screen_name, screen_class = self._dictButtons['mainScreen']
         else:
             screen_name, screen_class = self._dictButtons[sender]
-        setattr(self, screen_name, screen_class(self.state, 1))
+
+            self.update_data()
+        setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)
         _screen.show()
         self.close()

@@ -22,7 +22,7 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.data = data
         self.num_bills = 0
         self._sum = 0
-        self.litres = 0
+        self.liters = 0
         self.maximum_amount = MAXIMUM_AMOUNT
         self.setupUi()
 
@@ -36,7 +36,7 @@ class PaymentScreen(QtWidgets.QMainWindow):
 
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
-        self.pushButton_3.clicked.connect(self.update_sum)
+        self.pushButton_3.clicked.connect(self.update_line_edits)
 
         print(self.data)
 
@@ -55,12 +55,12 @@ class PaymentScreen(QtWidgets.QMainWindow):
         set_current_time(self.label_6, self.decrease)
 
     def update_data(self):
-        self.data['volume'] = int(self.litres * 100) / 100
+        self.data['volume'] = int(self.liters * 100) / 100
         self.data['amount'] = self._sum
         self.data['inscription_num'] = 2
         self.data['dateTime'] = get_datetime('YYYY-MM-DDTHH:MM')
 
-    def update_sum(self):
+    def update_line_edits(self):
         if int(self.spinBox.text()) == 0:
             return
         elif self._sum + int(self.spinBox.text()) > int(self.lineEdit.text()):
@@ -68,10 +68,10 @@ class PaymentScreen(QtWidgets.QMainWindow):
         self.num_bills += 1
         self._sum += int(self.spinBox.text())
         if self.data:
-            self.litres = self._sum / self.data['petrol']['price']
+            self.liters = self._sum / self.data['petrol']['price']
         self.lineEdit_3.setText(str(self.num_bills))
         self.lineEdit_7.setText(str(self._sum))
-        self.lineEdit_6.setText('{0:.2f}'.format(self.litres))
+        self.lineEdit_6.setText('{0:.2f}'.format(self.liters))
         self.spinBox.setValue(0)
         if self._sum:
             self.pushButton_2.setEnabled(True)
@@ -274,7 +274,7 @@ class PaymentScreen(QtWidgets.QMainWindow):
 
         self.lineEdit_7.setText(str(self._sum))
         self.lineEdit_3.setText(str(self.num_bills))
-        self.lineEdit_6.setText(str(self.litres))
+        self.lineEdit_6.setText(str(self.liters))
         self.lineEdit.setText(str(self.maximum_amount))
 
     def stop_timer(self):
