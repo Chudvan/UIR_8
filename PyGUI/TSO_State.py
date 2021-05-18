@@ -29,3 +29,7 @@ class TSO_State:
 
         self.TSO_number = number
         self.id = self.create_id(id)
+
+        self.CARD = True
+        self.PCARD = True
+        self.CASH = True

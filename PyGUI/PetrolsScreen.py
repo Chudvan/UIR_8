@@ -58,7 +58,7 @@ class PetrolsScreen(QtWidgets.QMainWindow):
 
         self.pushButton.clicked.connect(self.showScreen)
 
-        n = len(self.data['petrol']) if self.data['petrol'] else 0
+        n = len(self.data['petrol']) if (self.data and self.data['petrol']) else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             pushButton = getattr(self, pushButton_name, None)
@@ -100,12 +100,13 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         self.data['petrol'] = petrol
 
     def create_buttons(self):
-        n = len(self.data['petrol']) if self.data['petrol'] else 0
-        for i in range(n):
-            pushButton_name = "pushButton_" + str(i + 2)
-            setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
-            pushButton = getattr(self, pushButton_name, None)
-            self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
+        if self.data:
+            n = len(self.data['petrol']) if self.data['petrol'] else 0
+            for i in range(n):
+                pushButton_name = "pushButton_" + str(i + 2)
+                setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
+                pushButton = getattr(self, pushButton_name, None)
+                self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -179,13 +180,14 @@ class PetrolsScreen(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslate_buttons(self):
-        n = len(self.data['petrol']) if self.data['petrol'] else 0
-        for i in range(n):
-            pushButton_name = "pushButton_" + str(i + 2)
-            pushButton = getattr(self, pushButton_name, None)
-            pushButton.setText(self.data['petrol'][i]['petrolType'] + ' : ' + str(self.data['petrol'][i]['price']))
-            pushButton.petrolType = self.data['petrol'][i]['petrolType']
-            pushButton.price = self.data['petrol'][i]['price']
+        if self.data:
+            n = len(self.data['petrol']) if self.data['petrol'] else 0
+            for i in range(n):
+                pushButton_name = "pushButton_" + str(i + 2)
+                pushButton = getattr(self, pushButton_name, None)
+                pushButton.setText(self.data['petrol'][i]['petrolType'] + ' : ' + str(self.data['petrol'][i]['price']))
+                pushButton.petrolType = self.data['petrol'][i]['petrolType']
+                pushButton.price = self.data['petrol'][i]['price']
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate

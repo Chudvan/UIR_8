@@ -68,7 +68,7 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.init_logic()
 
         self.pushButton.clicked.connect(self.showScreen)
-        n = len(self.data['pump']) if self.data['pump'] else 0
+        n = len(self.data['pump']) if (self.data and self.data['pump']) else 0
         for i in range(n):
             pushButton_name = "pushButton_" + str(i + 2)
             pushButton = getattr(self, pushButton_name, None)
@@ -105,12 +105,13 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.data['pump'] = pump
 
     def create_buttons(self):
-        n = len(self.data['pump']) if self.data['pump'] else 0
-        for i in range(n):
-            pushButton_name = "pushButton_" + str(i + 2)
-            setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
-            pushButton = getattr(self, pushButton_name, None)
-            self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
+        if self.data:
+            n = len(self.data['pump']) if self.data['pump'] else 0
+            for i in range(n):
+                pushButton_name = "pushButton_" + str(i + 2)
+                setattr(self, pushButton_name, QtWidgets.QPushButton(self.centralwidget))
+                pushButton = getattr(self, pushButton_name, None)
+                self.gridLayout.addWidget(pushButton, i // 4, i % 4, 1, 1)
 
     def setupUi(self):
         self.setObjectName("MainWindow")
