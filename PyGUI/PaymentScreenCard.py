@@ -54,14 +54,40 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.decrease += 1
         set_current_time(self.label_6, self.decrease)
 
+    def set_liters(self, value):
+        self.liters = value
+        if self.get_liters() != self.liters:
+            self.doubleSpinBox_2.setValue(value)
+
+    def get_liters(self):
+        return self.doubleSpinBox_2.value()
+
+    def set_sum(self, value):
+        if value > self.maximum_amount:
+            return
+        self._sum = value
+        if self.get_sum() != self._sum:
+            self.doubleSpinBox.setValue(value)
+
+    def get_sum(self):
+        return self.doubleSpinBox.value()
+
     def update_spin_boxes(self):
         sender = self.sender()
         if sender == self.doubleSpinBox:
             print('sum')
-            self._sum = self.doubleSpinBox.value()
+            self.set_sum(self.get_sum())
+            if self.data:
+                self.set_liters(self.get_sum() / self.data['petrol']['price'])
         elif sender == self.doubleSpinBox_2:
             print('litres')
-            self.liters = self.doubleSpinBox_2.value()
+            current_litres = self.liters
+            self.set_liters(self.get_liters())
+            if self.data:
+                if self.get_liters() * self.data['petrol']['price'] <= self.maximum_amount:
+                    self.set_sum(self.get_liters() * self.data['petrol']['price'])
+                else:
+                    self.set_liters(current_litres)
         print(self._sum)
         print(self.liters)
 
@@ -125,6 +151,7 @@ class PaymentScreenCard(QtWidgets.QMainWindow):
         self.gridLayout.addWidget(self.doubleSpinBox, 0, 1, 1, 1)
         self.doubleSpinBox_2 = QtWidgets.QDoubleSpinBox(self.centralwidget)
         self.doubleSpinBox_2.setObjectName("doubleSpinBox_2")
+        self.doubleSpinBox_2.setMaximum(self.maximum_amount)
         self.gridLayout.addWidget(self.doubleSpinBox_2, 2, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
         self.gridLayout_5.addLayout(self.verticalLayout, 0, 1, 1, 1)
