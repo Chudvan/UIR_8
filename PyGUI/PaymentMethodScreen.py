@@ -31,9 +31,12 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
         self.init_timer()
 
         self.pushButton.clicked.connect(self.showScreen)
-        self.pushButton_2.clicked.connect(self.showScreen)
-        self.pushButton_3.clicked.connect(self.showScreen)
-        self.pushButton_4.clicked.connect(self.showScreen)
+        if self.state.CARD:
+            self.pushButton_3.clicked.connect(self.showScreen)
+        if self.state.CASH:
+            self.pushButton_2.clicked.connect(self.showScreen)
+        if self.state.PCARD:
+            self.pushButton_4.clicked.connect(self.showScreen)
         #self.pushButton_5.clicked.connect(self.showScreen)
 
     def init_timer(self):
@@ -95,15 +98,28 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
         self.verticalLayout.setObjectName("verticalLayout")
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.gridLayout.addWidget(self.pushButton_3, 0, 1, 1, 1)
-        self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout.addWidget(self.pushButton_2, 0, 0, 1, 1)
-        self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_4.setObjectName("pushButton_4")
-        self.gridLayout.addWidget(self.pushButton_4, 1, 0, 1, 1)
+        n = 0
+        _dict_row_col = {
+            0: (0, 0),
+            1: (0, 1),
+            2: (1, 0)
+        }
+        if self.state.CARD:
+            self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
+            self.pushButton_3.setObjectName("pushButton_3")
+            self.gridLayout.addWidget(self.pushButton_3, *_dict_row_col[n], 1, 1)
+            n += 1
+        if self.state.CASH:
+            self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
+            self.pushButton_2.setObjectName("pushButton_2")
+            self.gridLayout.addWidget(self.pushButton_2, *_dict_row_col[n], 1, 1)
+            n += 1
+        if self.state.PCARD:
+            self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
+            self.pushButton_4.setObjectName("pushButton_4")
+            self.gridLayout.addWidget(self.pushButton_4, *_dict_row_col[n], 1, 1)
+            n += 1
+
         #self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
         #self.pushButton_5.setObjectName("pushButton_5")
         #self.gridLayout.addWidget(self.pushButton_5, 1, 1, 1, 1)
@@ -135,10 +151,15 @@ class PaymentMethodScreen(QtWidgets.QMainWindow):
         self.label_5.setText(_translate("MainWindow", "Возврат в главное меню через:"))
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
         self.label.setText(_translate("MainWindow", "Выберите способ оплаты"))
-        self.pushButton_3.setText(_translate("MainWindow", "Банковская карта"))
-        self.pushButton_2.setText(_translate("MainWindow", "Наличные"))
-        self.pushButton_4.setText(_translate("MainWindow", "Топливная карта"))
+
+        if self.state.CARD:
+            self.pushButton_3.setText(_translate("MainWindow", "Банковская карта"))
+        if self.state.CASH:
+            self.pushButton_2.setText(_translate("MainWindow", "Наличные"))
+        if self.state.PCARD:
+            self.pushButton_4.setText(_translate("MainWindow", "Топливная карта"))
         #self.pushButton_5.setText(_translate("MainWindow", "PushButton5"))
+
         self.pushButton.setText(_translate("MainWindow", "Выход"))
 
     def stop_timer(self):

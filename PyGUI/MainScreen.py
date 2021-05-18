@@ -16,7 +16,7 @@ from DatetimeLabel import *
 from TSO_State import TSO_State
 
 ONLINE = True
-BANK_ONLINE = False
+BANK_ONLINE = True
 PETROL_ONLINE = True
 
 MAXIMUM_AMOUNT = 15_000
@@ -229,7 +229,7 @@ class MainScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    state = TSO_State(ok=False)
+    state = TSO_State(currencydetector=False)
     ui = MainScreen(state)
     ui.show()
     sys.exit(app.exec_())
