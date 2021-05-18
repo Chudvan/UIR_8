@@ -24,6 +24,7 @@ MAXIMUM_AMOUNT = 15_000
 
 class MainScreen(QtWidgets.QMainWindow):
     def __init__(self, state, data=None):
+        from OrderOtherScreen import OrderOtherScreen
         super(MainScreen, self).__init__()
         self.setupUi()
         self.state = state
@@ -33,7 +34,8 @@ class MainScreen(QtWidgets.QMainWindow):
         self._dictButtons = {
             self.pushButton: ('infoScreen', InfoScreen),
             self.pushButton_2: ('scanScreen', ScanScreen_),
-            self.pushButton_3: ('informationScreen', InformationScreen)
+            self.pushButton_3: ('orderOtherScreen', OrderOtherScreen),
+            self.pushButton_4: ('informationScreen', InformationScreen)
         }
 
         set_current_datetime(self.label_5)
@@ -45,6 +47,7 @@ class MainScreen(QtWidgets.QMainWindow):
         self.pushButton.clicked.connect(self.showScreen)
         self.pushButton_2.clicked.connect(self.showScreen)
         self.pushButton_3.clicked.connect(self.showScreen)
+        self.pushButton_4.clicked.connect(self.showScreen)
         print('id', self.state.id)
         print('CARD', 'PCARD', 'CASH')
         print(self.state.CARD, self.state.PCARD, self.state.CASH)
@@ -95,6 +98,9 @@ class MainScreen(QtWidgets.QMainWindow):
         self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_3.setObjectName("pushButton_3")
         self.verticalLayout.addWidget(self.pushButton_3)
+        self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_4.setObjectName("pushButton_4")
+        self.verticalLayout.addWidget(self.pushButton_4)
         spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -208,7 +214,8 @@ class MainScreen(QtWidgets.QMainWindow):
         self.label.setText(_translate("MainWindow", "TextLabel"))
         self.pushButton.setText(_translate("MainWindow", "Заправка"))
         self.pushButton_2.setText(_translate("MainWindow", "Печать чека\nПеревод сдачи"))
-        self.pushButton_3.setText(_translate("MainWindow", "Информация"))
+        self.pushButton_3.setText(_translate("MainWindow", "Другие услуги"))
+        self.pushButton_4.setText(_translate("MainWindow", "Информация"))
         self.label_4.setText(_translate("MainWindow", "TextLabel"))
         self.label_3.setText(_translate("MainWindow", "TextLabel"))
         self.label_2.setText(_translate("MainWindow", "TextLabel"))
@@ -229,7 +236,7 @@ class MainScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    state = TSO_State(currencydetector=False)
+    state = TSO_State(pos=False)
     ui = MainScreen(state)
     ui.show()
     sys.exit(app.exec_())
