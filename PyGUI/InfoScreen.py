@@ -13,13 +13,7 @@ from PyQt5.QtCore import pyqtSignal, QObject
 from DatetimeLabel import *
 from TSO_State import TSO_State
 import requests
-
-
-SLEEP_DELAY = 3
-
-
-def create_inscription(inscription):
-    return {'inscription': inscription}
+from general_functions import create_inscription
 
 
 class Logic(QObject):
@@ -39,14 +33,21 @@ class Logic(QObject):
         self.create_buttons.emit()
         self.thread().quit()
 
+    def basic_error_emit(self):
+        self.data = create_inscription("Нет связи с ТРК. Заправка невозможна!")
+        print('emit error')
+        QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+        if self.actual:
+            self.new_screen.emit(self.data)
+
     def run(self):
         if self.inscription == "Загрузка":
             try:
                 r = requests.get('http://127.0.0.1:8000/api/v1/TSO/pumps/')
             except requests.exceptions.ConnectionError:
                 print('ERROR')
+                self.basic_error_emit()
                 return
-            # print(r)
             if r.status_code == 200:
                 self.data = r.json()
             print(r.status_code)
@@ -81,6 +82,7 @@ class Logic(QObject):
                 r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
             except requests.exceptions.ConnectionError:
                 print('ERROR')
+                self.basic_error_emit()
                 return
             if r.status_code == 400 and "Pump is BUSY now!" in r.text:
                 self.screen.horizontalLayout_2.removeWidget(self.screen.label_5)
@@ -91,8 +93,13 @@ class Logic(QObject):
                 while r.status_code == 400 and "PumpState is irrelevant!" not in r.text:
                     self.screen.choice_of_inscription(5)
                     QtCore.QThread.msleep(SLEEP_DELAY * 1000)
-                    r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
-                    print('try')
+                    try:
+                        print('try')
+                        r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
+                    except requests.exceptions.ConnectionError:
+                        print('ERROR')
+                        self.basic_error_emit()
+                        return
 
                 if r.status_code == 400:
                     self.data['pump']['status'] = 'FREE'
@@ -100,6 +107,7 @@ class Logic(QObject):
                         r = requests.post('http://127.0.0.1:8000/api/v1/TSO/orderpetrol/', json=self.data)
                     except requests.exceptions.ConnectionError:
                         print('ERROR')
+                        self.basic_error_emit()
                         return
 
             if r.status_code == 200:
@@ -286,7 +294,7 @@ class InfoScreen(QtWidgets.QMainWindow):
     def showScreen(self, data=None):
         self.stop_timer()
         self.terminate_logic()
-
+        # print('thread stopped')
         print(data)
         if data and type(data) != requests.models.Response \
                 and type(data) == list:
@@ -297,7 +305,8 @@ class InfoScreen(QtWidgets.QMainWindow):
             self.data = create_inscription(data['inscription'])
 
         sender = self.sender()
-        if sender == self.delay_timer:
+        if sender == self.delay_timer or sender is None:
+            print('Timer')
             screen_name, screen_class = self._dictButtons['mainScreen']
             #self.logic.actual = False
         elif hasattr(self, 'pushButton_2') and sender == self.pushButton_2:
@@ -308,6 +317,7 @@ class InfoScreen(QtWidgets.QMainWindow):
             if data.status_code == 200:
                 screen_name, screen_class = self._dictButtons['mainScreen']
             elif data.status_code == 400 or 503:
+                print('400 or 503')
                 screen_name, screen_class = self._dictButtons['errorScreen']
                 inscription = data.text if data.status_code == 400 else "Нет связи с ТРК. Заправка невозможна!"
                 self.data = create_inscription(inscription)

@@ -21,6 +21,7 @@ def set_current_datetime(label):
 
 
 TIMER_DELAY = 120
+SLEEP_DELAY = 3
 
 
 def set_current_time(label, decrease):

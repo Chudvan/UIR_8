@@ -15,6 +15,7 @@ from PetrolsScreen import PetrolsScreen
 from DatetimeLabel import *
 from TSO_State import TSO_State
 import requests
+from general_functions import create_inscription
 
 
 class Logic(QObject):
@@ -25,11 +26,18 @@ class Logic(QObject):
         self.data = None
         self.actual = True
 
+    def basic_error_emit(self):
+        self.data = create_inscription("Нет связи с ТРК. Заправка невозможна!")
+        QtCore.QThread.msleep(SLEEP_DELAY * 1000)
+        if self.actual:
+            self.new_screen.emit(self.data)
+
     def run(self):
         try:
             r = requests.get('http://127.0.0.1:8000/api/v1/TSO/petrols/')
         except requests.exceptions.ConnectionError:
             print('ERROR')
+            self.basic_error_emit()
             return
         # print(r)
         if r.status_code == 200:
@@ -246,8 +254,11 @@ class PumpsScreen(QtWidgets.QMainWindow):
         self.terminate_logic()
 
         print('data', data)
-        if data:
+        if data and type(data) == list:
             self.data['petrol'] = data
+        elif type(data) == dict and 'inscription' in data.keys():
+            self.data = create_inscription(data['inscription'])
+
         sender = self.sender()
         if sender == self.delay_timer:
             screen_name, screen_class = self._dictButtons['mainScreen']
@@ -257,9 +268,13 @@ class PumpsScreen(QtWidgets.QMainWindow):
             #self.logic.actual = False
         elif 'petrol' not in self.data.keys():
             screen_name, screen_class = self._dictButtons['errorScreen']
+            self.data = create_inscription("Нет связи с ТРК. Заправка невозможна!")
         elif self.data['petrol']:
             #print(self.data)
             screen_name, screen_class = self._dictButtons['pumps']
+        elif 'inscription' in self.data.keys():
+            screen_name, screen_class = self._dictButtons['errorScreen']
+
 
         setattr(self, screen_name, screen_class(self.state, self.data))
         _screen = getattr(self, screen_name, None)

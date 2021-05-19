@@ -236,7 +236,7 @@ class MainScreen(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    state = TSO_State(pos=False)
+    state = TSO_State(pos=True)
     ui = MainScreen(state)
     ui.show()
     sys.exit(app.exec_())
